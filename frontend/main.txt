@@ -1,0 +1,2717 @@
+// import React, { useState, useEffect, useRef, useCallback } from 'react';
+// import { 
+//   Car, ArrowRight, Wrench, ChevronRight, Search, X, Instagram, 
+//   Facebook, Mail, Phone, MapPin, Plus, Minus, Trash2, ShoppingBag, 
+//   CheckCircle, MessageCircle, Star, Shield, Zap, Clock 
+// } from 'lucide-react';
+// import CheckoutModal from './components/CheckoutModal';
+// import { useParams, useNavigate, useLocation , Link } from 'react-router-dom';
+// import { motion, AnimatePresence } from 'framer-motion';
+
+// // تعريفات الأنيميشن
+// const pageVariants = {
+//   initial: {
+//     opacity: 0,
+//     x: 100,
+//     scale: 0.95
+//   },
+//   in: {
+//     opacity: 1,
+//     x: 0,
+//     scale: 1
+//   },
+//   out: {
+//     opacity: 0,
+//     x: -100,
+//     scale: 1.05
+//   }
+// };
+
+// const pageTransition = {
+//   type: "tween",
+//   ease: "anticipate",
+//   duration: 0.3
+// };
+
+// // Constants
+// const API_URL = 'http://localhost:8000/api';
+
+// // Custom Hooks
+// const useScrollEffect = () => {
+//   const [isScrolled, setIsScrolled] = useState(false);
+
+//   useEffect(() => {
+//     const handleScroll = () => {
+//       setIsScrolled(window.scrollY > 50);
+//     };
+//     window.addEventListener('scroll', handleScroll);
+//     return () => window.removeEventListener('scroll', handleScroll);
+//   }, []);
+
+//   return isScrolled;
+// };
+
+// const apiCache = {};
+// const CACHE_DURATION = 5 * 60 * 1000; // 5 دقايق
+
+// const useApi = () => {
+//   const fetchData = useCallback(async (endpoint, options = {}) => {
+//     if (options.method && options.method !== 'GET') {
+//       try {
+//         const response = await fetch(`${API_URL}${endpoint}`, options);
+//         if (!response.ok) throw new Error('Network response was not ok');
+        
+//         if (endpoint.includes('/brands')) {
+//           delete apiCache['/brands'];
+//         }
+//         if (endpoint.includes('/products')) {
+//           Object.keys(apiCache).forEach(key => {
+//             if (key.includes('/products')) delete apiCache[key];
+//           });
+//         }
+//         if (endpoint.includes('/models')) {
+//           Object.keys(apiCache).forEach(key => {
+//             if (key.includes('/models')) delete apiCache[key];
+//           });
+//         }
+        
+//         return await response.json();
+//       } catch (error) {
+//         console.error(`Error fetching ${endpoint}:`, error);
+//         throw error;
+//       }
+//     }
+    
+//     const now = Date.now();
+//     const cached = apiCache[endpoint];
+    
+//     if (cached && (now - cached.timestamp < CACHE_DURATION)) {
+//       console.log(`✅ [Cache Hit] ${endpoint}`);
+//       return cached.data;
+//     }
+    
+//     console.log(`🔄 [Fetching] ${endpoint}`);
+//     try {
+//       const response = await fetch(`${API_URL}${endpoint}`, options);
+//       if (!response.ok) throw new Error('Network response was not ok');
+//       const data = await response.json();
+      
+//       apiCache[endpoint] = {
+//         data,
+//         timestamp: now
+//       };
+      
+//       return data;
+//     } catch (error) {
+//       console.error(`Error fetching ${endpoint}:`, error);
+//       throw error;
+//     }
+//   }, []);
+
+//   return { fetchData };
+// };
+
+// const useCart = () => {
+//   const [cart, setCart] = useState([]);
+
+//   const addToCart = useCallback((product) => {
+//     setCart(prev => {
+//       const existing = prev.find(item => item.id === product.id);
+//       if (existing) {
+//         return prev.map(item =>
+//           item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
+//         );
+//       }
+//       return [...prev, { ...product, quantity: 1 }];
+//     });
+//   }, []);
+
+//   const removeFromCart = useCallback((productId) => {
+//     setCart(prev => prev.filter(item => item.id !== productId));
+//   }, []);
+
+//   const updateQuantity = useCallback((productId, newQuantity) => {
+//     if (newQuantity <= 0) {
+//       removeFromCart(productId);
+//       return;
+//     }
+//     setCart(prev =>
+//       prev.map(item =>
+//         item.id === productId ? { ...item, quantity: newQuantity } : item
+//       )
+//     );
+//   }, [removeFromCart]);
+
+//   const getTotalPrice = useCallback(() => {
+//     return cart.reduce((total, item) => total + (item.price * item.quantity), 0);
+//   }, [cart]);
+
+//   const cartCount = cart.reduce((total, item) => total + item.quantity, 0);
+
+//   return {
+//     cart,
+//     cartCount,
+//     addToCart,
+//     updateQuantity,
+//     removeFromCart,
+//     getTotalPrice,
+//     setCart
+//   };
+// };
+
+// // Success Notification Component
+// const SuccessNotification = ({ onClose }) => {
+//   useEffect(() => {
+//     const timer = setTimeout(() => {
+//       onClose();
+//     }, 5000);
+    
+//     return () => clearTimeout(timer);
+//   }, [onClose]);
+
+//   return (
+//     <div className="fixed top-24 right-6 z-50 animate-slide-in-right">
+//       <div className="bg-gradient-to-r from-green-500 to-green-600 text-white p-6 rounded-2xl shadow-2xl border-2 border-green-300 max-w-sm">
+//         <div className="flex items-start gap-4">
+//           <div className="bg-white/20 p-2 rounded-full backdrop-blur-sm">
+//             <CheckCircle className="w-8 h-8 text-white" />
+//           </div>
+//           <div className="flex-1">
+//             <h3 className="text-xl font-bold mb-2">Order Successful! 🎉</h3>
+//             <p className="text-green-100 text-sm leading-relaxed">
+//               Your order has been placed successfully. Our team will contact you within 24 hours to confirm delivery details.
+//             </p>
+//           </div>
+//           <button
+//             onClick={onClose}
+//             className="text-white/80 hover:text-white p-1 rounded-full transition-colors"
+//           >
+//             <X className="w-5 h-5" />
+//           </button>
+//         </div>
+        
+//         <div className="mt-4 flex items-center gap-2 text-green-100 text-sm">
+//           <Clock className="w-4 h-4" />
+//           <span>You'll be contacted within 24 hours</span>
+//         </div>
+        
+//         <div className="mt-3 h-1 bg-green-400/30 rounded-full overflow-hidden">
+//           <div className="h-full bg-white animate-progress"></div>
+//         </div>
+//       </div>
+//     </div>
+//   );
+// };
+
+// // Components
+// const Header = ({ 
+//   cartCount, 
+//   toggleCart, 
+//   scrollToProducts, 
+//   scrollToAbout, 
+//   scrollToContact, 
+//   onScrollToHome, 
+//   onSearch,
+//   searchResults = [],
+//   loading = false,
+//   onAddToCart,   
+//   onProductClick,
+//   onCloseSearch,
+//   onViewDetails
+// }) => {
+//   const [searchOpen, setSearchOpen] = useState(false);
+//   const [searchQuery, setSearchQuery] = useState('');
+//   const isScrolled = useScrollEffect();
+
+//   const scrollToHome = useCallback(() => {
+//     if (onScrollToHome) {
+//       onScrollToHome();
+//     } else {
+//       window.scrollTo({ top: 0, behavior: 'smooth' });
+//     }
+//   }, [onScrollToHome]);
+
+//   const handleSearch = useCallback(() => {
+//     if (searchQuery.trim() && onSearch) {
+//       onSearch(searchQuery);
+//     }
+//   }, [searchQuery, onSearch]);
+
+//   const handleSearchKeyPress = useCallback((e) => {
+//     if (e.key === 'Enter') {
+//       handleSearch();
+//     }
+//   }, [handleSearch]);
+
+//   const toggleSearch = useCallback(() => {
+//     if (searchOpen) {
+//       if (onCloseSearch) {
+//         onCloseSearch();
+//       }
+//     }
+//     setSearchOpen(!searchOpen);
+//     if (!searchOpen) {
+//       setTimeout(() => document.getElementById('search-input')?.focus(), 100);
+//     }
+//   }, [searchOpen, onCloseSearch]);
+
+//   const navItems = [
+//     { label: 'Home', action: scrollToHome },
+//     { label: 'Products', action: scrollToProducts },
+//     { label: 'About', action: scrollToAbout },
+//     { label: 'Contact', action: scrollToContact }
+//   ];
+
+//   const popularSearches = ['Brake Pads', 'Oil Filters', 'Spark Plugs', 'Air Filters', 'Batteries', 'Tires'];
+
+//   return (
+//     <>
+//       <header className={`fixed w-full z-50 transition-all duration-500 ${
+//         isScrolled 
+//           ? 'bg-white/98 backdrop-blur-md shadow-xl py-3' 
+//           : 'bg-white/95 backdrop-blur-sm py-5'
+//       }`}>
+//         <nav className="container mx-auto px-6 flex justify-between items-center">
+//           <button 
+//             onClick={scrollToHome}
+//             className="flex items-center gap-3 group transition-all duration-300 hover:scale-105 transform cursor-pointer"
+//           >
+//        <Link
+//   to="/"
+//   className="group flex items-center space-x-2 hover:opacity-90 transition-all duration-300"
+// >
+//   <div className="w-24 h-14 flex items-center justify-center overflow-hidden">
+//     <img
+//       src="/logo.png"
+//       alt="AtoZ Logo"
+//       className="h-20 w-auto transform scale-[1.7] transition-transform duration-300 group-hover:scale-[1.8]"
+//     />
+//   </div>
+// </Link>
+
+
+
+//           </button>
+          
+//           <div className="hidden md:flex gap-10">
+//             {navItems.map((item) => (
+//               <NavButton key={item.label} onClick={item.action}>
+//                 {item.label}
+//               </NavButton>
+//             ))}
+//           </div>
+
+//           <div className="flex items-center gap-3">
+//             <SearchButton onClick={toggleSearch} />
+//             <CartButton cartCount={cartCount} onClick={toggleCart} />
+//           </div>
+//         </nav>
+//       </header>
+
+//       <SearchModal
+//         isOpen={searchOpen}
+//         searchQuery={searchQuery}
+//         onQueryChange={setSearchQuery}
+//         onSearch={handleSearch}
+//         onKeyPress={handleSearchKeyPress}
+//         onClose={toggleSearch}
+//         popularSearches={popularSearches}
+//         onSearchClick={onSearch}
+//         searchResults={searchResults}
+//         loading={loading}
+//         onAddToCart={onAddToCart}
+//         onProductClick={onProductClick}
+//         onCloseSearch={onCloseSearch}
+//         onViewDetails={onViewDetails}
+//       />
+//     </>
+//   );
+// };
+
+// const NavButton = ({ onClick, children }) => (
+//   <button 
+//     onClick={onClick}
+//     className="text-gray-600 hover:text-blue-600 transition-colors duration-300 font-medium tracking-wide uppercase text-sm relative group"
+//   >
+//     {children}
+//     <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-blue-400 to-blue-600 transition-all duration-300 group-hover:w-full"></span>
+//   </button>
+// );
+
+// const SearchButton = ({ onClick }) => (
+//   <button
+//     onClick={onClick}
+//     className="relative p-3 hover:bg-blue-50 rounded-full transition-all duration-300 group"
+//   >
+//     <Search className="w-5 h-5 text-gray-600 group-hover:text-blue-600 transition-colors" />
+//   </button>
+// );
+
+// const CartButton = ({ cartCount, onClick }) => (
+//   <button
+//     onClick={onClick}
+//     className="relative bg-gradient-to-r from-blue-500 to-blue-600 text-white px-6 py-3 rounded-full font-medium tracking-wide uppercase text-sm transition-all duration-300 hover:from-blue-600 hover:to-blue-700 transform hover:-translate-y-0.5 hover:shadow-xl group"
+//   >
+//     <span className="flex items-center gap-2">
+//       <ShoppingBag className="w-4 h-4" />
+//       <span>Cart</span>
+//       {cartCount > 0 && (
+//         <span className="bg-white text-blue-600 rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold ml-1 animate-pulse">
+//           {cartCount}
+//         </span>
+//       )}
+//     </span>
+//   </button>
+// );
+
+// const SearchModal = ({ 
+//   isOpen, 
+//   searchQuery, 
+//   onQueryChange, 
+//   onSearch, 
+//   onKeyPress, 
+//   onClose, 
+//   popularSearches,
+//   onSearchClick,
+//   searchResults,
+//   loading,
+//   onAddToCart,
+//   onProductClick,
+//   onCloseSearch,
+//   onViewDetails
+// }) => {
+//   const handleViewDetails = (product) => {
+//     if (onCloseSearch) onCloseSearch();
+//     if (onClose) onClose();
+//     onViewDetails(product);
+//   };
+
+//   return (
+//     <div className={`fixed inset-0 z-50 transition-all duration-500 ${
+//       isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+//     }`}>
+//       <div 
+//         className="absolute inset-0 bg-gradient-to-br from-blue-900/95 via-blue-800/95 to-blue-900/95 backdrop-blur-md"
+//         onClick={() => {
+//           if (onCloseSearch) onCloseSearch();
+//           onClose();
+//         }}
+//       ></div>
+      
+//       <div className="relative h-full flex items-start justify-center pt-20 overflow-y-auto">
+//         <div className="w-full max-w-6xl px-4 pb-20">
+//           <div className="relative bg-white/10 backdrop-blur-lg rounded-2xl p-2 shadow-2xl border border-white/20 mb-8">
+//             <input
+//               id="search-input"
+//               type="text"
+//               value={searchQuery}
+//               onChange={(e) => {
+//                 const value = e.target.value;
+//                 onQueryChange(value);
+//                 onSearch(value);
+//               }}
+//               placeholder="Search auto parts, brands, models..."
+//               className="w-full bg-transparent text-white text-2xl md:text-4xl font-light px-6 py-6 pr-20 focus:outline-none placeholder-white/50"
+//             />
+//             <button
+//               onClick={() => onSearch(searchQuery)}
+//               className="absolute right-4 top-1/2 -translate-y-1/2 p-3 bg-white/20 hover:bg-white/30 rounded-full transition-all duration-300"
+//             >
+//               <Search className="w-6 h-6 text-white" />
+//             </button>
+//           </div>
+
+//           {loading && searchQuery && (
+//             <div className="text-center py-8">
+//               <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-white border-t-transparent"></div>
+//               <p className="text-white mt-4">Searching...</p>
+//             </div>
+//           )}
+
+//           {!loading && searchQuery && searchResults.length > 0 ? (
+//             <div className="space-y-6">
+//               <div className="text-white text-xl font-bold mb-4">
+//                 Found {searchResults.length} results
+//               </div>
+//               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+//                 {searchResults.map((product) => (
+//                   <div 
+//                     key={product.id} 
+//                     className="bg-white rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2"
+//                   >
+//                     <div className="relative aspect-square overflow-hidden bg-gray-100">
+//                       <img
+//                         src={product.image_url}
+//                         alt={product.name}
+//                         className="w-full h-full object-cover hover:scale-110 transition-transform duration-500"
+//                       />
+//                     </div>
+//                     <div className="p-4">
+//                       <h4 className="text-lg font-bold mb-1 text-gray-900">{product.name}</h4>
+                      
+//                       <div className="flex flex-wrap gap-2 mb-3">
+//                         {product.brand_name && (
+//                           <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full font-medium">
+//                             {product.brand_name}
+//                           </span>
+//                         )}
+//                         {product.model_name && (
+//                           <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-medium">
+//                             {product.model_name}
+//                           </span>
+//                         )}
+//                         {product.category_name && (
+//                           <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full font-medium">
+//                             {product.category_name}
+//                           </span>
+//                         )}
+//                       </div>
+                      
+//                       <p className="text-2xl font-black text-blue-600 mb-4">${product.price}</p>
+                      
+//                       <div className="flex gap-2">
+//                         <button
+//                           onClick={() => handleViewDetails(product)}
+//                           className="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 text-white py-2 font-semibold rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all duration-300 text-sm"
+//                         >
+//                           View Details
+//                         </button>
+//                         <button
+//                           onClick={() => {
+//                             onAddToCart(product);
+//                             if (onCloseSearch) onCloseSearch();
+//                             onClose();
+//                           }}
+//                           className="px-4 bg-green-500 hover:bg-green-600 text-white rounded-xl transition-all duration-300"
+//                         >
+//                           <ShoppingBag className="w-5 h-5" />
+//                         </button>
+//                       </div>
+//                     </div>
+//                   </div>
+//                 ))}
+//               </div>
+//             </div>
+//           ) : !loading && searchQuery ? (
+//             <div className="text-center py-16 text-white">
+//               <div className="bg-white/10 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-4">
+//                 <Search className="w-12 h-12" />
+//               </div>
+//               <p className="text-xl font-bold mb-2">No products found</p>
+//               <p className="text-blue-200">Try different keywords</p>
+//             </div>
+//           ) : !searchQuery ? (
+//             <div className="mt-12 text-white/90">
+//               <p className="text-sm uppercase tracking-wider mb-4 font-medium text-blue-200">Popular Searches</p>
+//               <div className="flex flex-wrap gap-3">
+//                 {popularSearches.map((term) => (
+//                   <button
+//                     key={term}
+//                     onClick={() => {
+//                       onQueryChange(term);
+//                       onSearchClick(term);
+//                     }}
+//                     className="px-5 py-2.5 bg-white/15 hover:bg-white/25 rounded-full text-sm transition-all duration-300 backdrop-blur-sm border border-white/20 hover:border-white/40"
+//                   >
+//                     {term}
+//                   </button>
+//                 ))}
+//               </div>
+//             </div>
+//           ) : null}
+
+//           <button
+//             onClick={() => {
+//               if (onCloseSearch) onCloseSearch();
+//               onClose();
+//             }}
+//             className="absolute top-4 right-8 p-3 text-white hover:bg-white/10 rounded-full transition-all duration-300 border border-white/20"
+//           >
+//             <X className="w-8 h-8" />
+//           </button>
+//         </div>
+//       </div>
+//     </div>
+//   );
+// };
+
+// const Footer = () => {
+//   const quickLinks = ['About Us', 'All Parts', 'Best Sellers', 'Contact'];
+//   const customerService = ['Shipping Info', 'Returns & Warranty', 'Privacy Policy', 'Terms of Service'];
+//   const socialLinks = [
+//     { icon: Instagram, label: 'Instagram' },
+//     { icon: Facebook, label: 'Facebook' },
+//     { icon: Mail, label: 'Email' }
+//   ];
+
+//   return (
+//     <footer className="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white py-16">
+//       <div className="container mx-auto px-6">
+//         <div className="grid md:grid-cols-4 gap-12 mb-12">
+//           <FooterSection 
+//             title="Auto Parts" 
+//             subtitle="Premium Quality"
+//             description="Your trusted source for premium auto parts. Quality guaranteed, prices unbeatable."
+//             socialLinks={socialLinks}
+//           />
+          
+//           <FooterLinks title="Quick Links" items={quickLinks} />
+//           <FooterLinks title="Customer Service" items={customerService} />
+//           <ContactInfo />
+//         </div>
+
+//         <NewsletterSection />
+//         <FooterBottom />
+//       </div>
+//     </footer>
+//   );
+// };
+
+// const FooterSection = ({ title, subtitle, description, socialLinks }) => (
+//   <div className="col-span-2 md:col-span-1">
+//     <div className="mb-6">
+//       <div className="flex items-center gap-3 mb-4">
+//         <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">
+//           <Wrench className="w-6 h-6 text-white" />
+//         </div>
+//         <div>
+//           <div className="text-xl font-bold text-white">{title}</div>
+//           <div className="text-xs text-blue-400">{subtitle}</div>
+//         </div>
+//       </div>
+//       <p className="text-gray-400 text-sm leading-relaxed">{description}</p>
+//     </div>
+    
+//     <div className="flex gap-4">
+//       {socialLinks.map(({ icon: Icon, label }) => (
+//         <a 
+//           key={label}
+//           href="#" 
+//           className="w-10 h-10 bg-white/10 hover:bg-blue-600 rounded-full flex items-center justify-center transition-all duration-300 hover:scale-110"
+//           aria-label={label}
+//         >
+//           <Icon className="w-5 h-5" />
+//         </a>
+//       ))}
+//     </div>
+//   </div>
+// );
+
+// const FooterLinks = ({ title, items }) => (
+//   <div>
+//     <FooterTitle>{title}</FooterTitle>
+//     <ul className="space-y-3">
+//       {items.map((item) => (
+//         <li key={item}>
+//           <a href="#" className="text-gray-400 hover:text-white transition-colors duration-300 text-sm flex items-center gap-2 group">
+//             <span className="w-0 group-hover:w-2 h-0.5 bg-blue-500 transition-all duration-300"></span>
+//             {item}
+//           </a>
+//         </li>
+//       ))}
+//     </ul>
+//   </div>
+// );
+
+// const FooterTitle = ({ children }) => (
+//   <h3 className="text-lg font-bold mb-6 text-white relative inline-block">
+//     {children}
+//     <span className="absolute -bottom-2 left-0 w-12 h-0.5 bg-gradient-to-r from-blue-500 to-blue-600"></span>
+//   </h3>
+// );
+
+// const ContactInfo = () => {
+//   const contactItems = [
+//     { icon: Phone, text: '+20 123 456 7890' },
+//     { icon: Mail, text: 'info@autoparts.com' },
+//     { icon: MapPin, text: 'Cairo, Egypt' }
+//   ];
+
+//   return (
+//     <div>
+//       <FooterTitle>Get in Touch</FooterTitle>
+//       <ul className="space-y-4">
+//         {contactItems.map(({ icon: Icon, text }) => (
+//           <li key={text} className="flex items-start gap-3 text-gray-400 text-sm">
+//             <Icon className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
+//             <span>{text}</span>
+//           </li>
+//         ))}
+//       </ul>
+//     </div>
+//   );
+// };
+
+// const NewsletterSection = () => (
+//   <div className="border-t border-gray-700 pt-8 mb-8">
+//     <div className="max-w-md mx-auto text-center">
+//       <h3 className="text-lg font-bold mb-3">Stay Updated</h3>
+//       <p className="text-gray-400 text-sm mb-4">Get special offers and new arrivals first</p>
+//       <div className="flex gap-2">
+//         <input
+//           type="email"
+//           placeholder="Enter your email"
+//           className="flex-1 px-4 py-3 bg-white/10 border border-gray-700 rounded-full text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 transition-colors duration-300"
+//         />
+//         <button className="px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full font-medium text-sm hover:from-blue-600 hover:to-blue-700 transition-all duration-300 hover:shadow-lg">
+//           Subscribe
+//         </button>
+//       </div>
+//     </div>
+//   </div>
+// );
+
+// const FooterBottom = () => (
+//   <div className="border-t border-gray-700 pt-8 text-center">
+//     <p className="text-gray-400 text-sm">
+//       © 2025 Auto Parts Store. All rights reserved. Premium Quality Auto Parts
+//     </p>
+//   </div>
+// );
+
+// const CartModal = ({ cart, updateQuantity, removeFromCart, getTotalPrice, onClose, onCheckout }) => {
+//   const [showInstructions, setShowInstructions] = useState(false);
+
+//   useEffect(() => {
+//     document.body.style.overflow = 'hidden';
+//     return () => {
+//       document.body.style.overflow = 'unset';
+//     };
+//   }, []);
+
+//   const depositAmount = (getTotalPrice() * 0.5).toFixed(2);
+
+//   return (
+//     <AnimatePresence>
+//       <motion.div 
+//         initial={{ opacity: 0 }}
+//         animate={{ opacity: 1 }}
+//         exit={{ opacity: 0 }}
+//         transition={{ duration: 0.3 }}
+//         className="fixed inset-0 bg-blue-900/60 backdrop-blur-md z-50 flex items-center justify-center p-4"
+//         onClick={onClose}
+//       >
+//         <motion.div 
+//           initial={{ scale: 0.9, opacity: 0, y: 20 }}
+//           animate={{ scale: 1, opacity: 1, y: 0 }}
+//           exit={{ scale: 0.9, opacity: 0, y: 20 }}
+//           transition={{ type: "spring", duration: 0.5, bounce: 0.3 }}
+//           className="bg-white w-full max-w-2xl max-h-[90vh] overflow-hidden rounded-2xl shadow-2xl"
+//           onClick={(e) => e.stopPropagation()}
+//         >
+//           <CartHeader 
+//             showInstructions={showInstructions} 
+//             onClose={onClose} 
+//           />
+          
+//           <AnimatePresence mode="wait">
+//             {!showInstructions ? (
+//               <motion.div
+//                 key="cart-content"
+//                 initial={{ opacity: 0, x: -20 }}
+//                 animate={{ opacity: 1, x: 0 }}
+//                 exit={{ opacity: 0, x: 20 }}
+//                 transition={{ duration: 0.3 }}
+//               >
+//                 <CartContent
+//                   cart={cart}
+//                   updateQuantity={updateQuantity}
+//                   removeFromCart={removeFromCart}
+//                   getTotalPrice={getTotalPrice}
+//                   onShowInstructions={() => setShowInstructions(true)}
+//                 />
+//               </motion.div>
+//             ) : (
+//               <motion.div
+//                 key="checkout-instructions"
+//                 initial={{ opacity: 0, x: 20 }}
+//                 animate={{ opacity: 1, x: 0 }}
+//                 exit={{ opacity: 0, x: -20 }}
+//                 transition={{ duration: 0.3 }}
+//               >
+//                 <CheckoutInstructions
+//                   depositAmount={depositAmount}
+//                   totalAmount={getTotalPrice()}
+//                   onBack={() => setShowInstructions(false)}
+//                   onCheckout={onCheckout}
+//                 />
+//               </motion.div>
+//             )}
+//           </AnimatePresence>
+//         </motion.div>
+//       </motion.div>
+//     </AnimatePresence>
+//   );
+// };
+// const CartHeader = ({ showInstructions, onClose }) => (
+//   <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-6">
+//     <div className="flex justify-between items-center">
+//       <div className="flex items-center gap-3">
+//         <div className="bg-white/20 p-2 rounded-lg backdrop-blur-sm">
+//           <ShoppingBag className="w-6 h-6 text-white" />
+//         </div>
+//         <h2 className="text-2xl font-bold text-white tracking-wide">
+//           {showInstructions ? 'Order Confirmation' : 'Shopping Cart'}
+//         </h2>
+//       </div>
+//       <button
+//         onClick={onClose}
+//         className="text-white/70 hover:text-white hover:bg-white/10 p-2 rounded-full transition-all duration-200"
+//       >
+//         <X size={24} />
+//       </button>
+//     </div>
+//   </div>
+// );
+
+// const CartContent = ({ cart, updateQuantity, removeFromCart, getTotalPrice, onShowInstructions }) => (
+//   <>
+//     <div className="p-6 overflow-y-auto max-h-[400px] bg-gray-50">
+//       {cart.length === 0 ? (
+//         <EmptyCart />
+//       ) : (
+//         <div className="space-y-3">    
+//           {cart.map((item) => (
+//             <CartItem
+//               key={item.id}
+//               item={item}
+//               onUpdateQuantity={updateQuantity}
+//               onRemove={removeFromCart}
+//             />
+//           ))}
+//         </div>  
+//       )}
+//     </div>
+    
+//     {cart.length > 0 && (
+//       <CartFooter 
+//         totalPrice={getTotalPrice()} 
+//         onCheckout={onShowInstructions} 
+//       />
+//     )}
+//   </>
+// );
+
+// const EmptyCart = () => (
+//   <div className="text-center py-16">
+//     <div className="bg-gray-100 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-4">
+//       <ShoppingBag className="w-12 h-12 text-gray-400" />
+//     </div>
+//     <p className="text-gray-900 text-lg font-medium">Your cart is empty</p>
+//     <p className="text-gray-500 text-sm mt-2">Add items to get started</p>
+//   </div>
+// );
+// const CartItem = ({ item, onUpdateQuantity, onRemove }) => (
+//   <motion.div
+//     layout
+//     initial={{ opacity: 0, y: 20 }}
+//     animate={{ opacity: 1, y: 0 }}
+//     exit={{ opacity: 0, x: -100 }}
+//     transition={{ duration: 0.3 }}
+//     className="group bg-white rounded-xl p-4 shadow-sm hover:shadow-md transition-all duration-300 border-2 border-blue-100 hover:border-blue-300"
+//   >
+//     <div className="flex items-center gap-4">
+//       <motion.div 
+//         whileHover={{ scale: 1.05 }}
+//         className="relative overflow-hidden rounded-lg"
+//       >
+//         <img 
+//           src={item.image_url} 
+//           alt={item.name}
+//           className="w-20 h-20 object-cover group-hover:scale-110 transition-transform duration-300"
+//         />
+//       </motion.div>
+      
+//       <div className="flex-1">
+//         <h3 className="font-semibold text-gray-900 text-lg">{item.name}</h3>
+//         <div className="flex items-center gap-2 mt-1">
+//           <span className="text-gray-500 text-sm">Unit Price:</span>
+//           <span className="font-medium text-blue-600">${item.price}</span>
+//         </div>
+//       </div>
+      
+//       <QuantityControl
+//         quantity={item.quantity}
+//         onDecrease={() => onUpdateQuantity(item.id, item.quantity - 1)}
+//         onIncrease={() => onUpdateQuantity(item.id, item.quantity + 1)}
+//       />
+      
+//       <div className="text-right">
+//         <motion.p 
+//           key={item.quantity}
+//           initial={{ scale: 1.2 }}
+//           animate={{ scale: 1 }}
+//           className="font-bold text-blue-600 text-lg"
+//         >
+//           ${(item.price * item.quantity).toFixed(2)}
+//         </motion.p>
+//         <motion.button
+//           whileHover={{ scale: 1.1 }}
+//           whileTap={{ scale: 0.9 }}
+//           onClick={() => onRemove(item.id)}
+//           className="text-gray-500 hover:text-red-600 hover:bg-red-50 p-1 rounded transition-all duration-200 mt-1"
+//         >
+//           <Trash2 size={16} />
+//         </motion.button>
+//       </div>
+//     </div>
+//   </motion.div>
+// );
+// const QuantityControl = ({ quantity, onDecrease, onIncrease }) => (
+//   <div className="flex items-center bg-blue-50 rounded-lg p-1">
+//     <button
+//       onClick={onDecrease}
+//       className="w-8 h-8 hover:bg-blue-100 rounded transition-all duration-200 flex items-center justify-center group"
+//     >
+//       <Minus size={16} className="text-blue-600 group-hover:text-blue-800" />
+//     </button>
+//     <span className="w-12 text-center font-semibold text-blue-900">
+//       {quantity}
+//     </span>
+//     <button
+//       onClick={onIncrease}
+//       className="w-8 h-8 hover:bg-blue-100 rounded transition-all duration-200 flex items-center justify-center group"
+//     >
+//       <Plus size={16} className="text-blue-600 group-hover:text-blue-800" />
+//     </button>
+//   </div>
+// );
+
+// const CartFooter = ({ totalPrice, onCheckout }) => (
+//   <div className="p-6 bg-white border-t border-gray-200">
+//     <div className="space-y-3 mb-6">
+//       <div className="flex justify-between text-gray-600">
+//         <span>Subtotal</span>
+//         <span>${totalPrice.toFixed(2)}</span>
+//       </div>
+//       <div className="flex justify-between text-gray-600">
+//         <span>Shipping</span>
+//         <span className="text-green-600 font-medium">Free</span>
+//       </div>
+//       <div className="h-px bg-gray-300"></div>
+//       <div className="flex justify-between items-center">
+//         <span className="text-xl font-bold text-gray-900">Total</span>
+//         <span className="text-2xl font-bold text-blue-600">${totalPrice.toFixed(2)}</span>
+//       </div>
+//     </div>
+    
+//     <button
+//       onClick={onCheckout}
+//       className="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white py-4 font-medium tracking-wide uppercase transition-all duration-300 hover:from-blue-600 hover:to-blue-700 transform hover:scale-[1.02] rounded-xl shadow-lg flex items-center justify-center gap-2 group"
+//     >
+//       <span>Proceed to Checkout</span>
+//       <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
+//     </button>
+//   </div>
+// );
+
+// const CheckoutInstructions = ({ depositAmount, totalAmount, onBack, onCheckout }) => (
+//   <div className="p-6 overflow-y-auto max-h-[500px] bg-gray-50">
+//     <div className="space-y-4">
+//       <OrderSummary totalAmount={totalAmount} depositAmount={depositAmount} />
+//       <PaymentInstructions depositAmount={depositAmount} />
+//       <ConfirmationInstructions />
+//       <NextSteps />
+//     </div>
+
+//     <div className="flex gap-3 mt-6">
+//       <button
+//         onClick={onBack}
+//         className="flex-1 bg-white border-2 border-blue-600 text-blue-600 py-3 px-4 font-semibold tracking-wide transition-all duration-300 hover:bg-blue-50 rounded-xl"
+//       >
+//         Back to Cart
+//       </button>
+//       <button
+//         onClick={onCheckout}
+//         className="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 text-white py-3 px-4 font-semibold tracking-wide transition-all duration-300 hover:from-blue-600 hover:to-blue-700 rounded-xl shadow-lg"
+//       >
+//         Got it! Continue
+//       </button>
+//     </div>
+//   </div>
+// );
+
+// const OrderSummary = ({ totalAmount, depositAmount }) => (
+//   <div className="bg-white rounded-xl p-5 shadow-sm border-2 border-blue-100">
+//     <div className="flex items-center gap-3 mb-4">
+//       <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-2 rounded-lg">
+//         <CheckCircle className="w-5 h-5 text-white" />
+//       </div>
+//       <h4 className="font-bold text-gray-900 text-lg">Order Summary</h4>
+//     </div>
+    
+//     <div className="space-y-3 bg-blue-50 rounded-lg p-4">
+//       <div className="flex justify-between text-gray-600">
+//         <span>Total Amount:</span>
+//         <span className="font-semibold text-gray-900">${totalAmount.toFixed(2)}</span>
+//       </div>
+//       <div className="h-px bg-blue-200"></div>
+//       <div className="flex justify-between">
+//         <span className="text-gray-700 font-medium">Deposit Required (50%):</span>
+//         <span className="text-xl font-bold text-blue-600">${depositAmount}</span>
+//       </div>
+//     </div>
+//   </div>
+// );
+
+// const PaymentInstructions = ({ depositAmount }) => (
+//   <div className="bg-white rounded-xl p-5 shadow-sm border-2 border-blue-100">
+//     <div className="flex items-start gap-3">
+//       <div className="bg-blue-50 p-2 rounded-lg mt-1">
+//         <Phone className="w-5 h-5 text-blue-600" />
+//       </div>
+//       <div className="flex-1">
+//         <h4 className="font-bold text-gray-900 text-lg mb-3">Step 1: Payment</h4>
+//         <p className="text-gray-600 mb-4">
+//           Transfer <span className="font-bold text-blue-600">${depositAmount}</span> via payment method to:
+//         </p>
+//         <div className="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-4 rounded-lg text-center">
+//           <span className="text-2xl font-bold tracking-wider">+20 123 456 7890</span>
+//         </div>
+//       </div>
+//     </div>
+//   </div>
+// );
+
+// const ConfirmationInstructions = () => (
+//   <div className="bg-white rounded-xl p-5 shadow-sm border-2 border-blue-100">
+//     <div className="flex items-start gap-3">
+//       <div className="bg-blue-50 p-2 rounded-lg mt-1">
+//         <MessageCircle className="w-5 h-5 text-blue-600" />
+//       </div>
+//       <div className="flex-1">
+//         <h4 className="font-bold text-gray-900 text-lg mb-3">Step 2: Confirmation</h4>
+//         <p className="text-gray-600 mb-4">Send payment screenshot via:</p>
+        
+//         <div className="grid grid-cols-2 gap-3 mb-4">
+//           <div className="bg-blue-50 p-3 rounded-lg border-2 border-blue-200 hover:bg-blue-100 transition-colors cursor-pointer">
+//             <div className="flex items-center justify-center gap-2">
+//               <Instagram className="w-5 h-5 text-blue-600" />
+//               <span className="font-medium text-blue-900">Instagram</span>
+//             </div>
+//           </div>
+//           <div className="bg-blue-50 p-3 rounded-lg border-2 border-blue-200 hover:bg-blue-100 transition-colors cursor-pointer">
+//             <div className="flex items-center justify-center gap-2">
+//               <MessageCircle className="w-5 h-5 text-blue-600" />
+//               <span className="font-medium text-blue-900">WhatsApp</span>
+//             </div>
+//           </div>
+//         </div>
+        
+//         <div className="bg-blue-50 p-3 rounded-lg text-center border-2 border-blue-200">
+//           <span className="text-lg font-bold text-blue-900">+20 123 456 7890</span>
+//         </div>
+//       </div>
+//     </div>
+//   </div>
+// );
+
+// const NextSteps = () => (
+//   <div className="bg-blue-50 p-5 rounded-xl border-2 border-blue-200">
+//     <div className="flex items-start gap-3">
+//       <Clock className="w-6 h-6 text-blue-600 flex-shrink-0" />
+//       <div>
+//         <h5 className="font-semibold text-gray-900 mb-2">What's Next?</h5>
+//         <p className="text-gray-700 text-sm leading-relaxed">
+//           Our team will contact you within 24 hours to confirm your order and arrange delivery details.
+//         </p>
+//       </div>
+//     </div>
+//   </div>
+// );
+
+// const ProductDetailsView = ({ product, loading, onAddToCart, onBack }) => {
+//   const navigate = useNavigate();
+//   const [quantity, setQuantity] = useState(1);
+//   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+//   const [touchStart, setTouchStart] = useState(0);
+//   const [touchEnd, setTouchEnd] = useState(0);
+
+//   if (loading) {
+//     return <LoadingState message="Loading product details..." />;
+//   }
+
+//   const handleBack = () => {
+//     if (product.model_id) {
+//       navigate(`/brand/${product.brand_id}/model/${product.model_id}`);
+//     } else if (product.brand_id) {
+//       navigate(`/brand/${product.brand_id}`);
+//     } else {
+//       navigate('/');
+//     }
+//   };
+
+//  const handleAddToCart = () => {
+//     for (let i = 0; i < quantity; i++) {
+//       onAddToCart(product);
+//     }
+//   };
+// const productImages = product.images && product.images.length > 0 
+//     ? [product.image_url, ...product.images]
+//     : [product.image_url];
+
+//     const handleTouchStart = (e) => {
+//     setTouchStart(e.touches[0].clientX);
+//   };
+
+//   const handleTouchMove = (e) => {
+//     setTouchEnd(e.touches[0].clientX);
+//   };
+
+//   const handleTouchEnd = () => {
+//     if (touchStart - touchEnd > 75) {
+//       // Swipe Left - Next Image
+//       setSelectedImageIndex(selectedImageIndex === productImages.length - 1 ? 0 : selectedImageIndex + 1);
+//     }
+
+//     if (touchStart - touchEnd < -75) {
+//       // Swipe Right - Previous Image
+//       setSelectedImageIndex(selectedImageIndex === 0 ? productImages.length - 1 : selectedImageIndex - 1);
+//     }
+//   };
+
+//   return (
+//     <motion.section 
+//       initial="initial"
+//       animate="in"
+//       exit="out"
+//       variants={pageVariants}
+//       transition={pageTransition}
+//       className="py-32 bg-gradient-to-br from-gray-50 via-white to-blue-50 min-h-screen"
+//     >
+//       <div className="container mx-auto px-4">
+//         <div className="grid lg:grid-cols-2 gap-12">
+//         <div className="space-y-4">
+//             <div className="relative aspect-square overflow-hidden rounded-2xl bg-gray-100 shadow-2xl group">
+//               <img
+//                 src={productImages[selectedImageIndex]}
+//                 alt={`${product.name} - Image ${selectedImageIndex + 1}`}
+//                 className="w-full h-full object-cover hover:scale-110 transition-transform duration-500"
+//               />
+              
+//               {productImages.length > 1 && (
+//                 <>
+//                   <button
+//                     onClick={() => setSelectedImageIndex(selectedImageIndex === 0 ? productImages.length - 1 : selectedImageIndex - 1)}
+//                     className="absolute left-2 md:left-4 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white p-2 md:p-3 rounded-full shadow-xl transition-all duration-300 md:opacity-0 md:group-hover:opacity-100"
+//                   >
+//                    <ArrowRight className="w-5 h-5 md:w-6 md:h-6 text-gray-900 rotate-180" />
+//                   </button>
+                  
+//                   <button
+//                     onClick={() => setSelectedImageIndex(selectedImageIndex === productImages.length - 1 ? 0 : selectedImageIndex + 1)}
+//                     className="absolute right-2 md:right-4 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white p-2 md:p-3 rounded-full shadow-xl transition-all duration-300 md:opacity-0 md:group-hover:opacity-100"
+//                   >
+//                     <ArrowRight className="w-5 h-5 md:w-6 md:h-6 text-gray-900" />
+//                   </button>
+                  
+//                   <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/60 backdrop-blur-sm px-4 py-2 rounded-full text-white text-sm font-medium">
+//                     {selectedImageIndex + 1} / {productImages.length}
+//                   </div>
+//                 </>
+//               )}
+//             </div>
+//             {productImages.length > 1 && (
+//               <div className="grid grid-cols-4 gap-3">
+//                 {productImages.map((image, index) => (
+//                   <button
+//                     key={index}
+//                     onClick={() => setSelectedImageIndex(index)}
+//                     className={`aspect-square overflow-hidden rounded-xl border-4 transition-all duration-300 ${
+//                       selectedImageIndex === index 
+//                         ? 'border-blue-600 shadow-lg scale-105' 
+//                         : 'border-gray-200 hover:border-blue-300 hover:shadow-md'
+//                     }`}
+//                   >
+//                     <img
+//                       src={image}
+//                       alt={`${product.name} thumbnail ${index + 1}`}
+//                       className="w-full h-full object-cover"
+//                     />
+//                   </button>
+//                 ))}
+//               </div>
+//             )}
+//           </div>
+
+//           <div className="space-y-6">
+//             <div>
+//               <div className="flex flex-wrap gap-2 mb-4">
+//                 {product.brand_name && (
+//                   <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm font-medium">
+//                     {product.brand_name}
+//                   </span>
+//                 )}
+//                 {product.model_name && (
+//                   <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-medium">
+//                     {product.model_name}
+//                   </span>
+//                 )}
+//                 {product.category_name && (
+//                   <span className="bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-sm font-medium">
+//                     {product.category_name}
+//                   </span>
+//                 )}
+//               </div>
+              
+//               <h1 className="text-4xl md:text-5xl font-black text-gray-900 mb-4">
+//                 {product.name}
+//               </h1>
+              
+//               <div className="flex items-center gap-4 mb-6">
+//                 <span className="text-5xl font-black text-blue-600">
+//                   ${product.price}
+//                 </span>
+//                 <div className="flex items-center gap-1 text-green-600">
+//                   <CheckCircle className="w-5 h-5" />
+//                   <span className="font-medium">In Stock</span>
+//                 </div>
+//               </div>
+
+//               <p className="text-gray-600 text-lg leading-relaxed">
+//                 {product.description || 'Premium quality auto part designed for optimal performance and durability.'}
+//               </p>
+//             </div>
+
+//             <div className="bg-gray-50 p-6 rounded-2xl">
+//               <div className="flex items-center justify-between mb-4">
+//                 <span className="font-bold text-gray-900 text-lg">Quantity:</span>
+//                 <QuantityControl
+//                   quantity={quantity}
+//                   onDecrease={() => setQuantity(Math.max(1, quantity - 1))}
+//                   onIncrease={() => setQuantity(quantity + 1)}
+//                 />
+//               </div>
+              
+//               <div className="flex items-center justify-between text-sm text-gray-600">
+//                 <span>Total Price:</span>
+//                 <span className="text-2xl font-black text-blue-600">
+//                   ${(product.price * quantity).toFixed(2)}
+//                 </span>
+//               </div>
+//             </div>
+
+//             <div className="space-y-3">
+//               <button
+//                 onClick={handleAddToCart}
+//                 className="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white py-4 font-bold text-lg rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all duration-300 transform hover:scale-105 shadow-lg flex items-center justify-center gap-2 group"
+//               >
+//                 <ShoppingBag className="w-5 h-5" />
+//                 Add to Cart
+//                 <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+//               </button>
+//             </div>
+
+//             <div className="border-t pt-6">
+//               <h3 className="font-bold text-gray-900 text-xl mb-4">Why Choose This Part?</h3>
+//               <div className="grid grid-cols-2 gap-4">
+//                 <div className="flex items-center gap-2">
+//                   <CheckCircle className="w-5 h-5 text-green-600" />
+//                   <span className="text-gray-700 font-medium">100% Original</span>
+//                 </div>
+//                 <div className="flex items-center gap-2">
+//                   <Shield className="w-5 h-5 text-blue-600" />
+//                   <span className="text-gray-700 font-medium">1 Year Warranty</span>
+//                 </div>
+//                 <div className="flex items-center gap-2">
+//                   <Zap className="w-5 h-5 text-purple-600" />
+//                   <span className="text-gray-700 font-medium">Fast Delivery</span>
+//                 </div>
+//                 <div className="flex items-center gap-2">
+//                   <CheckCircle className="w-5 h-5 text-green-600" />
+//                   <span className="text-gray-700 font-medium">Easy Installation</span>
+//                 </div>
+//               </div>
+//             </div>
+//           </div>
+//         </div>
+
+//         <div className="mt-16 bg-white rounded-2xl shadow-lg p-8">
+//           <h3 className="text-2xl font-black text-gray-900 mb-6">Product Details</h3>
+//           <div className="prose max-w-none">
+//             <p className="text-gray-700 leading-relaxed">
+//               This premium auto part is manufactured to the highest standards of quality and performance. 
+//               Designed to meet or exceed OEM specifications, it ensures perfect fit and reliable operation for your vehicle.
+//             </p>
+            
+//             <h4 className="text-xl font-bold mt-6 mb-3">Key Benefits:</h4>
+//             <ul className="space-y-2 text-gray-700">
+//               <li className="flex items-start gap-2">
+//                 <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+//                 Premium quality materials for enhanced durability
+//               </li>
+//               <li className="flex items-start gap-2">
+//                 <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+//                 Precision engineering for perfect fit
+//               </li>
+//               <li className="flex items-start gap-2">
+//                 <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+//                 Meets or exceeds OEM standards
+//               </li>
+//               <li className="flex items-start gap-2">
+//                 <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+//                 Comprehensive warranty coverage
+//               </li>
+//             </ul>
+//           </div>
+//         </div>
+//       </div>
+//     </motion.section>
+//   );
+// };
+
+// // Main App Component
+// const MainApp = () => {
+//   const { brandId, modelId, productId } = useParams();
+//   const navigate = useNavigate();
+//   const location = useLocation();
+
+//   const currentView = productId ? 'productDetails' 
+//     : brandId && modelId ? 'parts' 
+//     : brandId ? 'models' 
+//     : 'home';
+    
+//   const [selectedBrand, setSelectedBrand] = useState(null);
+//   const [selectedModel, setSelectedModel] = useState(null);
+//   const [showCart, setShowCart] = useState(false);
+//   const [showCheckout, setShowCheckout] = useState(false);
+//   const [orderSuccess, setOrderSuccess] = useState(false);
+//   const [customerInfo, setCustomerInfo] = useState({
+//     name: '',
+//     email: '',
+//     phone: '',
+//     address: ''
+//   });
+//   const [brands, setBrands] = useState([]);
+//   const [models, setModels] = useState([]);
+//   const [products, setProducts] = useState([]);
+//   const [categories, setCategories] = useState([]);
+//   const [loading, setLoading] = useState(false);
+//   const aboutRef = useRef(null);
+//   const contactRef = useRef(null);
+//   const [searchQuery, setSearchQuery] = useState('');
+//   const [searchResults, setSearchResults] = useState([]);
+//   const [isSearching, setIsSearching] = useState(false);
+//   const [selectedProduct, setSelectedProduct] = useState(null);
+
+//   const brandsRef = useRef(null);
+//   const { fetchData } = useApi();
+//   const cart = useCart();
+
+//   useEffect(() => {
+//     fetchBrands();
+//     fetchCategories();
+//   }, []);
+
+//   useEffect(() => {
+//     if (selectedBrand) {
+//       fetchProducts();
+//     }
+//   }, [selectedBrand, selectedModel]);
+
+//   useEffect(() => {
+//     if (brandId && brands.length > 0) {
+//       const brand = brands.find(b => b.id === parseInt(brandId));
+//       if (brand) {
+//         setSelectedBrand(brand);
+//         fetchModelsForBrand(brandId);
+//       }
+//     } else if (!brandId) {
+//       setSelectedBrand(null);
+//       setSelectedModel(null);
+//     }
+//   }, [brandId, brands]);
+  
+//   useEffect(() => {
+//     if (modelId && models.length > 0 && selectedBrand) {
+//       const model = models.find(m => m.id === parseInt(modelId));
+//       if (model) {
+//         setSelectedModel(model);
+//       }
+//     } else if (!modelId) {
+//       setSelectedModel(null);
+//     }
+//   }, [modelId, models, selectedBrand]);
+
+//   useEffect(() => {
+//     if (productId && selectedProduct) {
+//       if (selectedProduct.brand_id && brands.length > 0) {
+//         const brand = brands.find(b => b.id === selectedProduct.brand_id);
+//         if (brand && (!selectedBrand || selectedBrand.id !== brand.id)) {
+//           setSelectedBrand(brand);
+//           fetchModelsForBrand(selectedProduct.brand_id);
+//         }
+//       }
+      
+//       if (selectedProduct.model_id && models.length > 0) {
+//         const model = models.find(m => m.id === selectedProduct.model_id);
+//         if (model && (!selectedModel || selectedModel.id !== model.id)) {
+//           setSelectedModel(model);
+//         }
+//       }
+//     }
+//   }, [selectedProduct, brands, models]);
+
+//   useEffect(() => {
+//     if (productId) {
+//       fetchProductDetails(productId);
+//     }
+//   }, [productId]);
+
+//   const searchTimeoutRef = useRef(null);
+
+//   const handleSearch = async (query) => {
+//     setSearchQuery(query);
+    
+//     if (!query.trim()) {
+//       setSearchResults([]);
+//       setIsSearching(false);
+//       return;
+//     }
+    
+//     setIsSearching(true);
+    
+//     if (searchTimeoutRef.current) {
+//       clearTimeout(searchTimeoutRef.current);
+//     }
+    
+//     searchTimeoutRef.current = setTimeout(async () => {
+//       setLoading(true);
+//       try {
+//         const data = await fetchData(`/products?search=${encodeURIComponent(query)}`);
+//         setSearchResults(data);
+//       } catch (error) {
+//         console.error('Error searching products:', error);
+//         setSearchResults([]);
+//       } finally {
+//         setLoading(false);
+//       }
+//     }, 300);
+//   };
+
+//   const handleProductClick = (product) => {
+//     if (product.brand_id && product.model_id) {
+//       const brand = brands.find(b => b.id === product.brand_id);
+//       if (brand) {
+//         setSelectedBrand(brand);
+//         fetchModelsForBrand(product.brand_id);
+        
+//         setTimeout(() => {
+//           setSelectedModel({ id: product.model_id, name: product.model_name });
+//           navigate(`/brand/${product.brand_id}/model/${product.model_id}`);
+//           window.scrollTo({ top: 0, behavior: 'smooth' });
+//         }, 100);
+//       }
+//     } else if (product.brand_id) {
+//       const brand = brands.find(b => b.id === product.brand_id);
+//       if (brand) {
+//         setSelectedBrand(brand);
+//         navigate(`/brand/${product.brand_id}`);
+//         window.scrollTo({ top: 0, behavior: 'smooth' });
+//       }
+//     }
+//   };
+
+//   const clearSearch = () => {
+//     setSearchQuery('');
+//     setSearchResults([]);
+//     setIsSearching(false);
+//   };
+
+//   const handleViewDetails = (product) => {
+//     if (product.brand_id && product.model_id) {
+//       navigate(`/brand/${product.brand_id}/model/${product.model_id}/product/${product.id}`);
+//     } else if (product.brand_id) {
+//       navigate(`/brand/${product.brand_id}/product/${product.id}`);
+//     } else {
+//       navigate(`/product/${product.id}`);
+//     }
+//     window.scrollTo({ top: 0, behavior: 'smooth' });
+//   };
+
+//   const fetchBrands = async () => {
+//     try {
+//       const data = await fetchData('/brands');
+//       setBrands(data);
+//     } catch (error) {
+//       console.error('Error fetching brands:', error);
+//     }
+//   };
+
+//   const scrollToAbout = () => {
+//     aboutRef.current?.scrollIntoView({ behavior: 'smooth' });
+//   };
+
+//   const scrollToContact = () => {
+//     contactRef.current?.scrollIntoView({ behavior: 'smooth' });
+//   };
+
+//   const fetchCategories = async () => {
+//     try {
+//       const data = await fetchData('/categories');
+//       setCategories(data);
+//     } catch (error) {
+//       console.error('Error fetching categories:', error);
+//     }
+//   };
+
+//   const fetchModelsForBrand = async (brandId) => {
+//     setLoading(true);
+//     try {
+//       const data = await fetchData(`/brands/${brandId}/models`);
+//       setModels(Array.isArray(data) ? data : []);
+//     } catch (error) {
+//       console.error('Error fetching models:', error);
+//       setModels([]);
+//     } finally {
+//       setLoading(false);
+//     }
+//   };
+
+//   const fetchProducts = async () => {
+//     setLoading(true);
+//     try {
+//       let url = '/products';
+//       const params = [];
+      
+//       if (selectedBrand) {
+//         params.push(`brand_id=${selectedBrand.id}`);
+//       }
+      
+//       if (selectedModel && selectedModel.id !== 'all') {
+//         params.push(`model_id=${selectedModel.id}`);
+//       }
+      
+//       if (params.length > 0) {
+//         url += `?${params.join('&')}`;
+//       }
+      
+//       const data = await fetchData(url);
+//       setProducts(data);
+//     } catch (error) {
+//       console.error('Error fetching products:', error);
+//       setProducts([]);
+//     } finally {
+//       setLoading(false);
+//     }
+//   };
+
+//   const fetchProductDetails = async (id) => {
+//     setLoading(true);
+//     try {
+//       const data = await fetchData(`/products/${id}`);
+//       setSelectedProduct(data);
+//       console.log('Product Data:', data);
+//     console.log('Product Images:', data.images);
+//     } catch (error) {
+//       console.error('Error fetching product details:', error);
+//     } finally {
+//       setLoading(false);
+//     }
+//   };
+
+//   const scrollToBrands = () => {
+//     if (currentView !== 'home') {
+//       navigate('/');
+//       setSelectedBrand(null);
+//       setSelectedModel(null);
+      
+//       setTimeout(() => {
+//         brandsRef.current?.scrollIntoView({ behavior: 'smooth' });
+//       }, 100);
+//     } else {
+//       brandsRef.current?.scrollIntoView({ behavior: 'smooth' });
+//     }
+//   };
+
+//   const handleBrandClick = (brand) => {
+//     setSelectedBrand(brand);
+//     setSelectedModel(null);
+//     navigate(`/brand/${brand.id}`);
+//     fetchModelsForBrand(brand.id);
+//     window.scrollTo({ top: 0, behavior: 'smooth' });
+//   };
+
+//   const handleModelClick = (model) => {
+//     setSelectedModel(model);
+//     navigate(`/brand/${selectedBrand.id}/model/${model.id}`);
+//     window.scrollTo({ top: 0, behavior: 'smooth' });
+//   };
+
+//   const handleBackToHome = () => {
+//     navigate('/');
+//     setSelectedBrand(null);
+//     setSelectedModel(null);
+//     window.scrollTo({ top: 0, behavior: 'smooth' });
+//   };
+
+//   const handleBackToModels = () => {
+//     navigate(`/brand/${selectedBrand.id}`);
+//     setSelectedModel(null);
+//     window.scrollTo({ top: 0, behavior: 'smooth' });
+//   };
+
+//   const handleProceedToCheckout = () => {
+//     setShowCart(false);
+//     setShowCheckout(true);
+//   };
+
+//   const handleCheckoutComplete = async () => {
+//     try {
+//       const orderData = {
+//         customer_name: customerInfo.name,
+//         customer_email: customerInfo.email,
+//         customer_phone: customerInfo.phone,
+//         customer_address: customerInfo.address,
+//         items: cart.cart.map(item => ({
+//           product_id: item.id,
+//           quantity: item.quantity,
+//           price: item.price
+//         })),
+//         total_amount: cart.getTotalPrice()
+//       };
+
+//       const result = await fetchData('/orders', {
+//         method: 'POST',
+//         headers: { 'Content-Type': 'application/json' },
+//         body: JSON.stringify(orderData)
+//       });
+
+//       setShowCheckout(false);
+//       setOrderSuccess(true);
+//       cart.setCart([]);
+//       setCustomerInfo({ name: '', email: '', phone: '', address: '' });
+      
+//       setTimeout(() => {
+//         setOrderSuccess(false);
+//       }, 5000);
+      
+//       return result;
+//     } catch (error) {
+//       console.error('Error creating order:', error);
+//       throw error;
+//     }
+//   };
+
+//   const productsByCategory = categories.reduce((acc, category) => {
+//     acc[category.name] = products.filter(p => p.category_id === category.id);
+//     return acc;
+//   }, {});
+
+//   return (
+//     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-gray-50">
+//       {orderSuccess && <SuccessNotification onClose={() => setOrderSuccess(false)} />}
+      
+//       <Header
+//         cartCount={cart.cartCount}
+//         toggleCart={() => setShowCart(true)}
+//         scrollToProducts={scrollToBrands}
+//         scrollToAbout={scrollToAbout}
+//         scrollToContact={scrollToContact}
+//         onScrollToHome={handleBackToHome}
+//         onSearch={handleSearch}
+//         searchResults={searchResults}
+//         loading={loading}
+//         onAddToCart={cart.addToCart}
+//         onProductClick={handleProductClick}
+//         onCloseSearch={clearSearch}
+//         onViewDetails={handleViewDetails}
+//       />
+
+//       <AnimatePresence mode="wait">
+//         <motion.div
+//           key={location.pathname + currentView}
+//           initial="initial"
+//           animate="in"
+//           exit="out"
+//           variants={pageVariants}
+//           transition={pageTransition}
+//           className="min-h-screen"
+//         >
+//           {currentView !== 'home' && (
+//             <BackButton 
+//               onClick={currentView === 'productDetails' ? () => navigate(-1) : 
+//                        currentView === 'parts' ? handleBackToModels : 
+//                        handleBackToHome} 
+//               currentView={currentView}
+//               selectedBrand={selectedBrand}
+//               selectedModel={selectedModel}
+//             />
+//           )}
+
+//           {currentView === 'home' && (
+//             <HomeView 
+//               brands={brands}
+//               products={products}
+//               brandsRef={brandsRef}
+//               onBrandClick={handleBrandClick}
+//               onScrollToBrands={scrollToBrands}
+//             />
+//           )}
+
+//           {currentView === 'models' && selectedBrand && (
+//             <ModelsView
+//               selectedBrand={selectedBrand}
+//               models={models}
+//               loading={loading}
+//               onModelClick={handleModelClick}
+//             />
+//           )}
+
+//           {currentView === 'productDetails' && selectedProduct && (
+//             <ProductDetailsView 
+//               product={selectedProduct}
+//               loading={loading}
+//               onAddToCart={cart.addToCart}
+//               onBack={() => navigate(-1)}
+//             />
+//           )}
+
+//           {currentView === 'parts' && selectedBrand && selectedModel && (
+//             <PartsView
+//               selectedBrand={selectedBrand}
+//               selectedModel={selectedModel}
+//               products={products}
+//               categories={categories}
+//               productsByCategory={productsByCategory}
+//               loading={loading}
+//               onAddToCart={cart.addToCart}
+//               onViewDetails={handleViewDetails}
+//             />
+//           )}
+
+//           {currentView === 'home' && (
+//             <>
+//               <AboutSection aboutRef={aboutRef} />
+//               <ContactSection contactRef={contactRef} />
+//             </>
+//           )}
+//         </motion.div>
+//       </AnimatePresence>
+
+//       <Footer />
+
+//       {showCart && (
+//         <CartModal
+//           cart={cart.cart}
+//           updateQuantity={cart.updateQuantity}
+//           removeFromCart={cart.removeFromCart}
+//           getTotalPrice={cart.getTotalPrice}
+//           onClose={() => setShowCart(false)}
+//           onCheckout={handleProceedToCheckout}
+//         />
+//       )}
+
+//       {showCheckout && (
+//         <CheckoutModal
+//           customerInfo={customerInfo}
+//           setCustomerInfo={setCustomerInfo}
+//           cart={cart.cart}
+//           getTotalPrice={cart.getTotalPrice}
+//           onClose={() => setShowCheckout(false)}
+//           onSubmit={handleCheckoutComplete}
+//         />
+//       )}
+//     </div>
+//   );
+// };
+
+
+// const BackButton = ({ onClick, currentView, selectedBrand, selectedModel }) => (
+// <div className="fixed top-32 left-6 z-40">
+//     <button
+//       onClick={onClick}
+//       className="bg-white/95 backdrop-blur-md shadow-lg px-6 py-3 rounded-full text-gray-700 hover:text-blue-600 transition-all duration-300 font-medium text-sm hover:shadow-xl transform hover:-translate-x-1 flex items-center gap-2"
+//     >
+//       <ArrowRight className="w-4 h-4 rotate-180" />
+//       {currentView === 'productDetails' ? 'Back' : 
+//        selectedModel ? `Back to ${selectedModel.name}` :
+//        selectedBrand ? `Back to ${selectedBrand.name}` :
+//        'Back to Home'}
+//     </button>
+//   </div>
+// );
+
+// const HomeView = ({ brands, products, brandsRef, onBrandClick, onScrollToBrands }) => (
+//   <>
+//     <HeroSection onScrollToBrands={onScrollToBrands} brandsCount={brands.length} />
+//     <BrandsSection 
+//       brands={brands} 
+//       brandsRef={brandsRef} 
+//       onBrandClick={onBrandClick} 
+//       productsCount={products.length} 
+//     />
+//   </>
+// );
+
+// const HeroSection = ({ onScrollToBrands, brandsCount }) => (
+//   <section className="relative min-h-screen flex items-center pt-20 overflow-hidden">
+//     <div className="absolute inset-0">
+//       <img 
+//         src="https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?w=1920&h=1080&fit=crop&q=80" 
+//         alt="Car Background"
+//         className="w-full h-full object-cover"
+//       />
+//       <div className="absolute inset-0 bg-gradient-to-r from-blue-900/95 via-blue-800/90 to-transparent"></div>
+//       <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-blue-900/50"></div>
+//     </div>
+
+//     <div className="absolute inset-0 overflow-hidden">
+//       <div className="absolute top-1/4 left-10 w-2 h-2 bg-blue-400 rounded-full animate-ping"></div>
+//       <div className="absolute top-1/3 right-20 w-3 h-3 bg-blue-300 rounded-full animate-pulse"></div>
+//       <div className="absolute bottom-1/3 left-1/4 w-2 h-2 bg-white rounded-full animate-ping"></div>
+//     </div>
+
+//     <div className="container mx-auto px-4 relative z-10">
+//       <div className="grid lg:grid-cols-2 gap-12 items-center">
+//         <HeroContent onScrollToBrands={onScrollToBrands} brandsCount={brandsCount} />
+//         <HeroImage brandsCount={brandsCount} />
+//       </div>
+//     </div>
+
+//     <ScrollIndicator />
+//   </section>
+// );
+
+// const HeroContent = ({ onScrollToBrands, brandsCount }) => (
+//   <div className="text-white">
+//     <div className="inline-flex items-center gap-3 bg-white/10 backdrop-blur-md border border-white/20 px-6 py-3 rounded-full mb-8 shadow-2xl">
+//       <Shield className="w-5 h-5 text-blue-400" />
+//       <span className="text-sm font-semibold uppercase tracking-widest">Premium Quality Guaranteed</span>
+//     </div>
+
+//     <h1 className="text-5xl sm:text-6xl lg:text-7xl xl:text-8xl font-black mb-6 leading-none">
+//       <span className="block">DRIVE</span>
+//       <span className="block text-blue-400">WITH</span>
+//       <span className="block bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent">CONFIDENCE</span>
+//     </h1>
+
+//     <p className="text-lg sm:text-xl text-blue-100 mb-8 leading-relaxed max-w-xl">
+//       Original auto parts from world's leading brands. 
+//       Fast shipping, expert support, and unbeatable prices.
+//     </p>
+
+//     <FeatureGrid />
+    
+//     <ActionButtons onScrollToBrands={onScrollToBrands} />
+    
+//     <StatsGrid />
+//   </div>
+// );
+
+// const FeatureGrid = () => {
+//   const features = [
+//     { icon: CheckCircle, title: '100% Original', subtitle: 'Guaranteed' },
+//     { icon: Zap, title: 'Fast Shipping', subtitle: 'Nationwide' }
+//   ];
+
+//   return (
+//     <div className="grid grid-cols-2 gap-4 mb-10">
+//       {features.map(({ icon: Icon, title, subtitle }) => (
+//         <div key={title} className="flex items-center gap-3">
+//           <div className="w-12 h-12 bg-blue-500/20 backdrop-blur-sm rounded-lg flex items-center justify-center border border-blue-400/30">
+//             <Icon className="w-6 h-6 text-blue-400" />
+//           </div>
+//           <div>
+//             <div className="font-bold text-white">{title}</div>
+//             <div className="text-sm text-blue-200">{subtitle}</div>
+//           </div>
+//         </div>
+//       ))}
+//     </div>
+//   );
+// };
+
+// const ActionButtons = ({ onScrollToBrands }) => (
+//   <div className="flex flex-col sm:flex-row gap-4">
+//     <button
+//       onClick={onScrollToBrands}
+//       className="group relative bg-white text-blue-900 px-8 py-5 rounded-xl font-bold text-lg shadow-2xl hover:shadow-white/50 transition-all duration-500 transform hover:scale-105 overflow-hidden"
+//     >
+//       <span className="relative z-10 flex items-center justify-center gap-3">
+//         Browse Parts
+//         <ArrowRight className="w-5 h-5 group-hover:translate-x-2 transition-transform duration-300" />
+//       </span>
+//       <div className="absolute inset-0 bg-blue-50 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-left"></div>
+//     </button>
+    
+//     <button className="group bg-white/10 backdrop-blur-md border-2 border-white/30 text-white px-8 py-5 rounded-xl font-bold text-lg hover:bg-white/20 transition-all duration-300 transform hover:scale-105 shadow-lg">
+//       <span className="flex items-center justify-center gap-2">
+//         <Phone className="w-5 h-5" />
+//         Call Now
+//       </span>
+//     </button>
+//   </div>
+// );
+
+// const StatsGrid = () => {
+//   const stats = [
+//     { value: '10K+', label: 'Happy Customers' },
+//     { value: '100+', label: 'Parts Available' },
+//     { value: '24/7', label: 'Support' }
+//   ];
+
+//   return (
+//     <div className="mt-12 flex items-center gap-8">
+//       {stats.map((stat, index) => (
+//         <React.Fragment key={stat.label}>
+//           <div className="text-center">
+//             <div className="text-3xl font-black text-white mb-1">{stat.value}</div>
+//             <div className="text-sm text-blue-200">{stat.label}</div>
+//           </div>
+//           {index < stats.length - 1 && <div className="w-px h-12 bg-white/20"></div>}
+//         </React.Fragment>
+//       ))}
+//     </div>
+//   );
+// };
+
+// const HeroImage = ({ brandsCount }) => (
+//   <div className="relative hidden lg:block">
+//     <div className="absolute -top-10 -right-10 w-72 h-72 bg-blue-500/20 rounded-full blur-3xl"></div>
+//     <div className="absolute -bottom-10 -left-10 w-64 h-64 bg-blue-400/20 rounded-full blur-3xl"></div>
+    
+//     <div className="relative z-10">
+//       <div className="absolute inset-0 bg-gradient-to-br from-blue-400/20 to-transparent rounded-3xl transform rotate-3"></div>
+//       <img 
+//         src="/background.png" 
+//         alt="Premium Car"
+//         className="relative rounded-3xl shadow-2xl transform hover:scale-105 transition-transform duration-700"
+//       />
+      
+//       <BrandsCountCard brandsCount={brandsCount} />
+//     </div>
+//   </div>
+// );
+
+// const BrandsCountCard = ({ brandsCount }) => (
+//   <div className="absolute -bottom-8 -left-8 bg-white/95 backdrop-blur-md rounded-2xl p-6 shadow-2xl border border-blue-100">
+//     <div className="flex items-center gap-4">
+//       <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center">
+//         <Car className="w-8 h-8 text-white" />
+//       </div>
+//       <div>
+//         <div className="text-2xl font-black text-blue-900">{brandsCount}+</div>
+//         <div className="text-sm text-gray-600">Car Brands</div>
+//       </div>
+//     </div>
+//   </div>
+// );
+
+// const ScrollIndicator = () => (
+//   <div className="absolute bottom-10 left-1/2 transform -translate-x-1/2 animate-bounce">
+//     <div className="flex flex-col items-center gap-2">
+//       <span className="text-sm text-white/80 font-medium uppercase tracking-wider">Scroll Down</span>
+//       <div className="w-6 h-10 border-2 border-white/40 rounded-full flex justify-center p-2">
+//         <div className="w-1.5 h-3 bg-white rounded-full animate-scroll"></div>
+//       </div>
+//     </div>
+//   </div>
+// );
+
+// const BrandsSection = ({ brands, brandsRef, onBrandClick, productsCount }) => (
+//   <section ref={brandsRef} className="py-20 bg-gradient-to-b from-white to-gray-50">
+//     <div className="container mx-auto px-4">
+//       <SectionHeader
+//         icon={Car}
+//         title="Premium Brands"
+//         subtitle="Select Your Car Brand"
+//         description="Choose from our premium selection of automotive brands"
+//       />
+
+//       {brands.length === 0 ? (
+//         <EmptyState message="No brands available. Please add brands from admin panel." />
+//       ) : (
+//         <BrandsGrid brands={brands} onBrandClick={onBrandClick} />
+//       )}
+
+//       <StatsCard productsCount={productsCount} />
+//     </div>
+//   </section>
+// );
+
+// const SectionHeader = ({ icon: Icon, title, subtitle, description }) => (
+//   <div className="text-center mb-16">
+//     <div className="inline-flex items-center gap-2 bg-blue-50 border border-blue-200 px-6 py-2 rounded-full mb-6">
+//       <Icon className="w-5 h-5 text-blue-600" />
+//       <span className="text-sm font-semibold text-blue-600 uppercase tracking-wider">{title}</span>
+//     </div>
+//     <h2 className="text-4xl md:text-6xl font-black mb-6 text-gray-900">
+//       {subtitle}
+//     </h2>
+//     <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+//       {description}
+//     </p>
+//   </div>
+// );
+
+// const EmptyState = ({ message }) => (
+//   <div className="text-center py-16">
+//     <div className="text-gray-500 text-lg">{message}</div>
+//   </div>
+// );
+
+// const BrandsGrid = ({ brands, onBrandClick }) => (
+//   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
+//     {brands.map((brand) => (
+//       <BrandCard key={brand.id} brand={brand} onClick={() => onBrandClick(brand)} />
+//     ))}
+//   </div>
+// );
+
+// const BrandCard = ({ brand, onClick }) => (
+//   <button
+//     onClick={onClick}
+//     className="group relative overflow-hidden rounded-3xl shadow-xl hover:shadow-2xl transition-all duration-700 transform hover:-translate-y-3"
+//   >
+//     <div className="relative aspect-[4/3] overflow-hidden">
+//       <img
+//         src={brand.logo_url}
+//         alt={brand.name}
+//         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+//       />
+//       <div className={`absolute inset-0 bg-gradient-to-t ${brand.color} opacity-60 group-hover:opacity-70 transition-opacity duration-500`}></div>
+      
+//       <BrandCardContent brand={brand} />
+      
+//       <ShimmerEffect />
+//     </div>
+
+//     <div className={`absolute bottom-0 left-0 right-0 h-2 bg-gradient-to-r ${brand.color} transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500`}></div>
+//   </button>
+// );
+
+// const BrandCardContent = ({ brand }) => (
+//   <div className="absolute inset-0 flex flex-col justify-end p-8">
+//     <div className="transform transition-all duration-500 group-hover:translate-y-0 translate-y-2">
+//       <h3 className="text-4xl font-black text-white mb-2 drop-shadow-lg">
+//         {brand.name}
+//       </h3>
+//       <p className="text-white/90 text-lg mb-4 drop-shadow-md">
+//         {brand.description}
+//       </p>
+//       <div className="flex items-center gap-2 text-white font-semibold">
+//         <span>View Models</span>
+//         <ChevronRight className="w-5 h-5 group-hover:translate-x-2 transition-transform duration-300" />
+//       </div>
+//     </div>
+//   </div>
+// );
+
+// const ShimmerEffect = () => (
+//   <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700">
+//     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent transform -skew-x-12 group-hover:translate-x-full transition-transform duration-1000"></div>
+//   </div>
+// );
+
+// const StatsCard = ({ productsCount }) => {
+//   const stats = [
+//     { value: '100+', label: 'Authorized Dealers' },
+//     { value: `${productsCount}+`, label: 'Parts in Stock' },
+//     { value: '10K+', label: 'Happy Customers' }
+//   ];
+
+//   return (
+//     <div className="mt-20 bg-gradient-to-r from-blue-600 to-blue-700 rounded-3xl p-8 md:p-12 shadow-2xl">
+//       <div className="grid md:grid-cols-3 gap-8 text-center text-white">
+//         {stats.map((stat) => (
+//           <div key={stat.label}>
+//             <div className="text-5xl font-black mb-2">{stat.value}</div>
+//             <div className="text-blue-100 font-medium">{stat.label}</div>
+//           </div>
+//         ))}
+//       </div>
+//     </div>
+//   );
+// };
+
+// const ModelsView = ({ selectedBrand, models, loading, onModelClick }) => (
+//   <section className="relative min-h-screen py-32 overflow-hidden">
+//     <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900">
+//       <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAxMCAwIEwgMCAwIDAgMTAiIGZpbGw9Im5vbmUiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS1vcGFjaXR5PSIwLjAzIiBzdHJva2Utd2lkdGg9IjEiLz48L3BhdHRlcm4+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9InVybCgjZ3JpZCkiLz48L3N2Zz4=')] opacity-40"></div>
+//     </div>
+
+//     <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10 max-w-7xl">
+//       <ModelsHeader selectedBrand={selectedBrand} />
+      
+//       {loading ? (
+//         <LoadingState message="Loading models..." />
+//       ) : models.length === 0 ? (
+//         <EmptyModelsState selectedBrand={selectedBrand} onBrowseAll={onModelClick} />
+//       ) : (
+//         <ModelsGrid models={models} onModelClick={onModelClick} />
+//       )}
+
+//       <FeaturesSection />
+//     </div>
+//   </section>
+// );
+
+// const ModelsHeader = ({ selectedBrand }) => (
+//   <div className="text-center mb-20">
+//     <div className="inline-flex items-center gap-3 bg-white/10 backdrop-blur-lg border border-white/20 px-6 py-3 rounded-full mb-8 shadow-2xl">
+//       <div className={`w-12 h-12 rounded-full bg-gradient-to-br ${selectedBrand.color} flex items-center justify-center shadow-lg`}>
+//         <Car className="w-6 h-6 text-white" />
+//       </div>
+//       <span className="text-sm font-black text-white uppercase tracking-widest">{selectedBrand.name}</span>
+//     </div>
+    
+//     <h2 className="text-5xl sm:text-6xl lg:text-7xl font-black mb-6 leading-tight text-white">
+//       Choose Your Model
+//     </h2>
+    
+//     <div className="flex items-center justify-center gap-4 mb-8">
+//       <div className="h-px w-20 bg-gradient-to-r from-transparent via-blue-400 to-transparent"></div>
+//       <div className="w-3 h-3 rounded-full bg-blue-400 animate-pulse"></div>
+//       <div className="h-px w-20 bg-gradient-to-l from-transparent via-blue-400 to-transparent"></div>
+//     </div>
+    
+//     <p className="text-xl sm:text-2xl text-blue-100 max-w-2xl mx-auto leading-relaxed">
+//       Premium auto parts for your {selectedBrand.name}
+//     </p>
+//   </div>
+// );
+
+// const LoadingState = ({ message }) => (
+//   <div className="text-center py-16 text-white">
+//     <div className="text-2xl font-bold">{message}</div>
+//   </div>
+// );
+
+// const EmptyModelsState = ({ selectedBrand, onBrowseAll }) => (
+//   <div className="text-center py-16 text-white">
+//     <div className="text-2xl font-bold mb-4">No Models Available</div>
+//     <p className="text-blue-200 mb-8">No models found for {selectedBrand.name}. Browse all parts instead.</p>
+//     <button
+//       onClick={() => onBrowseAll({ id: 'all', name: 'All Models' })}
+//       className={`bg-gradient-to-r ${selectedBrand.color} text-white px-8 py-4 rounded-xl font-bold text-lg shadow-2xl hover:scale-105 transition-all duration-300`}
+//     >
+//       Browse All {selectedBrand.name} Parts
+//     </button>
+//   </div>
+// );
+
+// const ModelsGrid = ({ models, onModelClick }) => (
+//   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
+//     {models.map((model) => (
+//       <ModelCard key={model.id} model={model} onClick={() => onModelClick(model)} />
+//     ))}
+//   </div>
+// );
+
+// const ModelCard = ({ model, onClick }) => (
+//   <button
+//     onClick={onClick}
+//     className="group relative overflow-hidden rounded-3xl shadow-xl hover:shadow-2xl transition-all duration-700 transform hover:-translate-y-3 bg-white/10 backdrop-blur-lg border border-white/20"
+//   >
+//     <div className="p-8">
+//       <div className="w-40 h-100 rounded-1xl flex items-center justify-center mb-6 mx-auto group-hover:scale-110 transition-transform duration-500 overflow-hidden">
+//         <img 
+//           src={model.image_url}
+//           alt={model.name}
+//           className="w-full h-full object-cover"
+//         />
+//       </div>
+//       <h3 className="text-3xl font-black text-white mb-3">{model.name}</h3>
+//       {/* <p className="text-blue-200 mb-6">Premium Auto Parts</p> */}
+//       <div className="flex items-center justify-center gap-2 text-white font-semibold">
+//         <span>View Parts</span>
+//         <ChevronRight className="w-5 h-5 group-hover:translate-x-2 transition-transform duration-300" />
+//       </div>
+//     </div>
+//   </button>
+// );
+// const FeaturesSection = () => {
+//   const features = [
+//     { icon: Shield, title: 'Original Parts', desc: '100% Authentic Guarantee', color: 'from-green-400 to-green-600' },
+//     { icon: Wrench, title: 'Expert Support', desc: 'Professional Assistance 24/7', color: 'from-blue-400 to-blue-600' },
+//     { icon: Zap, title: 'Fast Delivery', desc: 'Express Shipping Available', color: 'from-purple-400 to-purple-600' }
+//   ];
+
+//   return (
+//     <div className="max-w-6xl mx-auto mt-16">
+//       <div className="bg-white/5 backdrop-blur-2xl rounded-3xl p-10 lg:p-14 shadow-2xl border border-white/10">
+//         <div className="text-center mb-12">
+//           <h3 className="text-3xl font-black text-white mb-3">Why Choose Us</h3>
+//           <div className="h-1 w-20 bg-gradient-to-r from-blue-400 to-blue-600 mx-auto rounded-full"></div>
+//         </div>
+//         <div className="grid sm:grid-cols-3 gap-10 lg:gap-14">
+//           {features.map((item, idx) => (
+//             <FeatureItem key={idx} {...item} />
+//           ))}
+//         </div>
+//       </div>
+//     </div>
+//   );
+// };
+
+// const FeatureItem = ({ icon: Icon, title, desc, color }) => (
+//   <div className="flex flex-col items-center text-center group">
+//     <div className="relative mb-6">
+//       <div className={`absolute inset-0 bg-gradient-to-br ${color} rounded-3xl blur-2xl opacity-30 group-hover:opacity-50 transition-opacity duration-500`}></div>
+//       <div className={`relative w-20 h-20 lg:w-24 lg:h-24 bg-gradient-to-br ${color} rounded-3xl flex items-center justify-center shadow-2xl group-hover:scale-110 group-hover:-rotate-6 transition-all duration-500`}>
+//         <Icon className="w-10 h-10 lg:w-12 lg:h-12 text-white" />
+//       </div>
+//     </div>
+//     <h4 className="font-black text-white text-xl lg:text-2xl mb-3">{title}</h4>
+//     <p className="text-sm lg:text-base text-blue-200 leading-relaxed">{desc}</p>
+//   </div>
+// );
+
+// const PartsView = ({ selectedBrand, selectedModel, products, categories, productsByCategory, loading, onAddToCart, onViewDetails }) => (
+//   <section className="py-32 bg-gradient-to-br from-gray-50 via-white to-blue-50">
+//     <div className="container mx-auto px-4">
+//       <SectionHeader
+//         icon={Car}
+//         title={selectedBrand.name}
+//         subtitle="Premium Auto Parts"
+//         description={`High-quality parts for your ${selectedBrand.name}`}
+//       />
+
+//       {loading ? (
+//         <LoadingState message="Loading products..." />
+//       ) : products.length === 0 ? (
+//         <EmptyState 
+//           message="No products available for this brand yet."
+//           submessage="Please check back later or contact us."
+//         />
+//       ) : (
+//       <ProductsByCategory 
+//   categories={categories}
+//   productsByCategory={productsByCategory}
+//   onAddToCart={onAddToCart}
+//   onViewDetails={onViewDetails}
+// />
+//       )}
+//     </div>
+//   </section>
+// );
+
+// const ProductsByCategory = ({ categories, productsByCategory, onAddToCart, onViewDetails }) => (
+//   <>
+//     {Object.entries(productsByCategory).map(([category, parts]) => (
+//       parts.length > 0 && (
+//         <CategorySection
+//           key={category}
+//           category={category}
+//           parts={parts}
+//           onAddToCart={onAddToCart}
+//           onViewDetails={onViewDetails}
+//         />
+//       )
+//     ))}
+//   </>
+// );
+
+
+// const CategorySection = ({ category, parts, onAddToCart, onViewDetails }) => (
+//   <div className="mb-16">
+//     <div className="flex items-center gap-3 mb-8">
+//       <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
+//         <Wrench className="w-6 h-6 text-white" />
+//       </div>
+//       <h3 className="text-3xl font-black text-gray-900">{category}</h3>
+//     </div>
+//     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+//       {parts.map((part) => (
+//        <ProductCard
+//   key={part.id}
+//   part={part}
+//   onAddToCart={onAddToCart}
+//   onViewDetails={onViewDetails}
+// />
+//       ))}
+//     </div>
+//   </div>
+// );
+
+// const ProductCard = ({ part, onAddToCart, onViewDetails }) => (
+//   <div className="group bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 border border-gray-100">
+//     <ProductImage part={part} />
+//     <ProductInfo part={part} onAddToCart={onAddToCart} onViewDetails={onViewDetails} />
+//   </div>
+// );
+
+// const ProductImage = ({ part }) => (
+//   <div className="relative aspect-square overflow-hidden bg-gray-100">
+//     <img
+//       src={part.image_url}
+//       alt={part.name}
+//       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+//     />
+//     <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-full shadow-lg">
+//       <div className="flex items-center gap-1">
+//         <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
+//         <span className="text-sm font-bold text-gray-900">{part.rating || 4.5}</span>
+//       </div>
+//     </div>
+//   </div>
+// );
+
+// const ProductInfo = ({ part, onAddToCart, onViewDetails }) => (
+//   <div className="p-6">
+//     <h4 className="text-xl font-bold mb-2 text-gray-900 group-hover:text-blue-600 transition-colors">{part.name}</h4>
+//     {/* <ProductRating rating={part.rating} reviewsCount={part.reviews_count} /> */}
+//     <ProductPrice price={part.price} />
+//     <div className="flex gap-3">
+//   <button
+//     onClick={() => onViewDetails && onViewDetails(part)}
+//     className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 py-3 font-semibold rounded-xl transition-all duration-300 flex items-center justify-center gap-2"
+//   >
+//     <span>Details</span>
+//   </button>
+//   <button
+//     onClick={() => onAddToCart(part)}
+//     className="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 text-white py-3 font-semibold rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all duration-300 flex items-center justify-center gap-2"
+//   >
+//     <ShoppingBag className="w-5 h-5" />
+//     <span>Add</span>
+//   </button>
+// </div>
+//   </div>
+// );
+
+// // const ProductRating = ({ rating, reviewsCount }) => (
+// //   <div className="flex items-center gap-2 mb-4 text-sm text-gray-500">
+// //     <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
+// //     <span className="font-medium">{rating || 4.5}</span>
+// //     <span>({reviewsCount || 0} reviews)</span>
+// //   </div>
+// // );
+
+// const ProductPrice = ({ price }) => (
+//   <div className="flex items-center justify-between mb-6">
+//     <p className="text-3xl font-black text-blue-600">${price}</p>
+//     <div className="flex items-center gap-1 text-green-600">
+//       <CheckCircle className="w-5 h-5" />
+//       <span className="text-sm font-medium">In Stock</span>
+//     </div>
+//   </div>
+// );
+
+// const AddToCartButton = ({ onClick }) => (
+//   <button
+//     onClick={onClick}
+//     className="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white py-4 font-semibold rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl flex items-center justify-center gap-2 group"
+//   >
+//     <ShoppingBag className="w-5 h-5" />
+//     <span>Add to Cart</span>
+//   </button>
+// );
+// const AboutSection = ({ aboutRef }) => (
+//   <section ref={aboutRef} className="py-20 bg-white">
+//     <div className="container mx-auto px-4">
+//       <SectionHeader
+//         icon={Shield}
+//         title="About Us"
+//         subtitle="Your Trusted Auto Parts Partner"
+//         description="Quality parts, expert service, unbeatable prices"
+//       />
+      
+//       <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto mt-16">
+//         <div className="text-center p-8 bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl">
+//           <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
+//             <CheckCircle className="w-8 h-8 text-white" />
+//           </div>
+//           <h3 className="text-xl font-bold mb-3 text-gray-900">100% Original</h3>
+//           <p className="text-gray-600">All our parts are authentic and come with manufacturer warranty</p>
+//         </div>
+        
+//         <div className="text-center p-8 bg-gradient-to-br from-green-50 to-green-100 rounded-2xl">
+//           <div className="w-16 h-16 bg-gradient-to-br from-green-500 to-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
+//             <Zap className="w-8 h-8 text-white" />
+//           </div>
+//           <h3 className="text-xl font-bold mb-3 text-gray-900">Fast Delivery</h3>
+//           <p className="text-gray-600">Express shipping available nationwide for urgent orders</p>
+//         </div>
+        
+//         <div className="text-center p-8 bg-gradient-to-br from-purple-50 to-purple-100 rounded-2xl">
+//           <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
+//             <Shield className="w-8 h-8 text-white" />
+//           </div>
+//           <h3 className="text-xl font-bold mb-3 text-gray-900">Expert Support</h3>
+//           <p className="text-gray-600">Professional assistance available 24/7 for all your needs</p>
+//         </div>
+//       </div>
+//     </div>
+//   </section>
+// );
+
+// const ContactSection = ({ contactRef }) => (
+//   <section ref={contactRef} className="py-20 bg-gradient-to-br from-gray-50 to-blue-50">
+//     <div className="container mx-auto px-4">
+//       <SectionHeader
+//         icon={MessageCircle}
+//         title="Contact Us"
+//         subtitle="Get In Touch"
+//         description="We're here to help with any questions"
+//       />
+      
+//       <div className="grid md:grid-cols-2 gap-12 max-w-6xl mx-auto mt-16">
+//         <div className="space-y-6">
+//           <div className="flex items-start gap-4 p-6 bg-white rounded-2xl shadow-lg">
+//             <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center flex-shrink-0">
+//               <Phone className="w-6 h-6 text-white" />
+//             </div>
+//             <div>
+//               <h4 className="font-bold text-gray-900 mb-2">Phone</h4>
+//               <p className="text-gray-600">+20 123 456 7890</p>
+//               <p className="text-sm text-gray-500 mt-1">Available 24/7</p>
+//             </div>
+//           </div>
+          
+//           <div className="flex items-start gap-4 p-6 bg-white rounded-2xl shadow-lg">
+//             <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center flex-shrink-0">
+//               <Mail className="w-6 h-6 text-white" />
+//             </div>
+//             <div>
+//               <h4 className="font-bold text-gray-900 mb-2">Email</h4>
+//               <p className="text-gray-600">info@autoparts.com</p>
+//               <p className="text-sm text-gray-500 mt-1">Response within 24 hours</p>
+//             </div>
+//           </div>
+          
+//           <div className="flex items-start gap-4 p-6 bg-white rounded-2xl shadow-lg">
+//             <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center flex-shrink-0">
+//               <MapPin className="w-6 h-6 text-white" />
+//             </div>
+//             <div>
+//               <h4 className="font-bold text-gray-900 mb-2">Location</h4>
+//               <p className="text-gray-600">Cairo, Egypt</p>
+//               <p className="text-sm text-gray-500 mt-1">Visit our showroom</p>
+//             </div>
+//           </div>
+//         </div>
+        
+//         <div className="bg-white p-8 rounded-2xl shadow-lg">
+//           <h3 className="text-2xl font-bold mb-6 text-gray-900">Send us a message</h3>
+//           <form className="space-y-4">
+//             <input
+//               type="text"
+//               placeholder="Your Name"
+//               className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:border-blue-500"
+//             />
+//             <input
+//               type="email"
+//               placeholder="Your Email"
+//               className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:border-blue-500"
+//             />
+//             <textarea
+//               placeholder="Your Message"
+//               rows="4"
+//               className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:border-blue-500"
+//             ></textarea>
+//             <button
+//               type="submit"
+//               className="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white py-3 rounded-xl font-semibold hover:from-blue-600 hover:to-blue-700 transition-all duration-300"
+//             >
+//               Send Message
+//             </button>
+//           </form>
+//         </div>
+//       </div>
+//     </div>
+//   </section>
+// );
+
+// const ProductDetails = () => {
+//   const { productId } = useParams();
+//   const navigate = useNavigate();
+//   const { fetchData } = useApi();
+//   const cart = useCart();
+  
+//   const [product, setProduct] = useState(null);
+//   const [loading, setLoading] = useState(true);
+//   const [relatedProducts, setRelatedProducts] = useState([]);
+//   const [selectedImage, setSelectedImage] = useState(0);
+//   const [quantity, setQuantity] = useState(1);
+
+//   useEffect(() => {
+//     fetchProductDetails();
+//   }, [productId]);
+
+//   const fetchProductDetails = async () => {
+//     try {
+//       setLoading(true);
+//       const [productData, relatedData] = await Promise.all([
+//         fetchData(`/products/${productId}`),
+//         fetchData(`/products?category_id=${productId}&limit=6`)
+//       ]);
+      
+//       setProduct(productData);
+//       setRelatedProducts(relatedData.filter(p => p.id !== parseInt(productId)));
+//     } catch (error) {
+//       console.error('Error fetching product details:', error);
+//     } finally {
+//       setLoading(false);
+//     }
+//   };
+
+//   const handleAddToCart = () => {
+//     for (let i = 0; i < quantity; i++) {
+//       cart.addToCart(product);
+//     }
+//   };
+
+//   const handleBuyNow = () => {
+//     cart.addToCart(product);
+//     navigate('/cart');
+//   };
+
+//   if (loading) {
+//     return (
+//       <div className="min-h-screen flex items-center justify-center">
+//         <div className="text-center">
+//           <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent"></div>
+//           <p className="mt-4 text-gray-600">Loading product details...</p>
+//         </div>
+//       </div>
+//     );
+//   }
+
+//   if (!product) {
+//     return (
+//       <div className="min-h-screen flex items-center justify-center">
+//         <div className="text-center">
+//           <h2 className="text-2xl font-bold text-gray-900 mb-4">Product Not Found</h2>
+//           <button
+//             onClick={() => navigate('/')}
+//             className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
+//           >
+//             Back to Home
+//           </button>
+//         </div>
+//       </div>
+//     );
+//   }
+
+//   return (
+//     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50 pt-24">
+//       <div className="container mx-auto px-4 py-8">
+//         {/* Breadcrumb */}
+//         {/* Breadcrumb */}
+// <nav className="flex items-center gap-2 text-sm text-gray-600 mb-8">
+//   <button 
+//     onClick={() => navigate('/')}
+//     className="hover:text-blue-600 transition-colors"
+//   >
+//     Home
+//   </button>
+  
+//   {product.brand_name && (
+//     <>
+//       <ChevronRight className="w-4 h-4" />
+//       <button 
+//         onClick={() => navigate(`/brand/${product.brand_id}`)}
+//         className="hover:text-blue-600 transition-colors"
+//       >
+//         {product.brand_name}
+//       </button>
+//     </>
+//   )}
+  
+//   {product.model_name && (
+//     <>
+//       <ChevronRight className="w-4 h-4" />
+//       <button 
+//         onClick={() => navigate(`/brand/${product.brand_id}/model/${product.model_id}`)}
+//         className="hover:text-blue-600 transition-colors"
+//       >
+//         {product.model_name}
+//       </button>
+//     </>
+//   )}
+  
+//   <ChevronRight className="w-4 h-4" />
+//   <span className="text-gray-900">{product.name}</span>
+// </nav>
+
+//         <div className="grid lg:grid-cols-2 gap-12 mb-16">
+//           {/* Product Images */}
+//           <div className="space-y-4">
+//             <div className="aspect-square overflow-hidden rounded-2xl bg-gray-100">
+//               <img
+//                 src={product.image_url}
+//                 alt={product.name}
+//                 className="w-full h-full object-cover"
+//               />
+//             </div>
+            
+//             {/* Thumbnail Images */}
+//             {product.images && product.images.length > 1 && (
+//               <div className="grid grid-cols-4 gap-2">
+//                 {product.images.map((image, index) => (
+//                   <button
+//                     key={index}
+//                     onClick={() => setSelectedImage(index)}
+//                     className={`aspect-square overflow-hidden rounded-lg border-2 transition-all ${
+//                       selectedImage === index 
+//                         ? 'border-blue-600' 
+//                         : 'border-gray-200 hover:border-gray-300'
+//                     }`}
+//                   >
+//                     <img
+//                       src={image}
+//                       alt={`${product.name} ${index + 1}`}
+//                       className="w-full h-full object-cover"
+//                     />
+//                   </button>
+//                 ))}
+//               </div>
+//             )}
+//           </div>
+
+//           {/* Product Info */}
+//           <div className="space-y-6">
+//             <div>
+//               <div className="flex items-center gap-3 mb-4">
+//                 {product.brand_name && (
+//                   <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm font-medium">
+//                     {product.brand_name}
+//                   </span>
+//                 )}
+//                 {product.model_name && (
+//                   <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-medium">
+//                     {product.model_name}
+//                   </span>
+//                 )}
+//               </div>
+              
+//               <h1 className="text-4xl font-black text-gray-900 mb-4">
+//                 {product.name}
+//               </h1>
+              
+//               <div className="flex items-center gap-4 mb-6">
+//                 <span className="text-4xl font-black text-blue-600">
+//                   ${product.price}
+//                 </span>
+//                 <div className="flex items-center gap-1 text-green-600">
+//                   <CheckCircle className="w-5 h-5" />
+//                   <span className="font-medium">In Stock</span>
+//                 </div>
+//               </div>
+
+//               <p className="text-gray-600 text-lg leading-relaxed mb-8">
+//                 {product.description || 'Premium quality auto part designed for optimal performance and durability. Perfect fit for your vehicle.'}
+//               </p>
+//             </div>
+
+//             {/* Quantity Selector */}
+//             <div className="flex items-center gap-4">
+//               <span className="font-medium text-gray-900">Quantity:</span>
+//               <div className="flex items-center bg-gray-100 rounded-lg">
+//                 <button
+//                   onClick={() => setQuantity(Math.max(1, quantity - 1))}
+//                   className="w-10 h-10 hover:bg-gray-200 rounded-l-lg transition-colors flex items-center justify-center"
+//                 >
+//                   <Minus size={16} />
+//                 </button>
+//                 <span className="w-16 text-center font-semibold">
+//                   {quantity}
+//                 </span>
+//                 <button
+//                   onClick={() => setQuantity(quantity + 1)}
+//                   className="w-10 h-10 hover:bg-gray-200 rounded-r-lg transition-colors flex items-center justify-center"
+//                 >
+//                   <Plus size={16} />
+//                 </button>
+//               </div>
+//             </div>
+
+//             {/* Action Buttons */}
+//             <div className="flex gap-4">
+//               <button
+//                 onClick={handleAddToCart}
+//                 className="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 text-white py-4 font-bold rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all duration-300 transform hover:scale-105 shadow-lg flex items-center justify-center gap-2"
+//               >
+//                 <ShoppingBag className="w-5 h-5" />
+//                 Add to Cart
+//               </button>
+//               <button
+//                 onClick={handleBuyNow}
+//                 className="flex-1 bg-gradient-to-r from-green-500 to-green-600 text-white py-4 font-bold rounded-xl hover:from-green-600 hover:to-green-700 transition-all duration-300 transform hover:scale-105 shadow-lg"
+//               >
+//                 Buy Now
+//               </button>
+//             </div>
+
+//             {/* Product Features */}
+//             <div className="border-t pt-6">
+//               <h3 className="font-bold text-gray-900 mb-4">Product Features</h3>
+//               <div className="grid grid-cols-2 gap-4">
+//                 <div className="flex items-center gap-2">
+//                   <CheckCircle className="w-5 h-5 text-green-600" />
+//                   <span className="text-gray-700">100% Original</span>
+//                 </div>
+//                 <div className="flex items-center gap-2">
+//                   <Shield className="w-5 h-5 text-blue-600" />
+//                   <span className="text-gray-700">1 Year Warranty</span>
+//                 </div>
+//                 <div className="flex items-center gap-2">
+//                   <Zap className="w-5 h-5 text-purple-600" />
+//                   <span className="text-gray-700">Fast Delivery</span>
+//                 </div>
+//                 <div className="flex items-center gap-2">
+//                   <CheckCircle className="w-5 h-5 text-green-600" />
+//                   <span className="text-gray-700">Easy Installation</span>
+//                 </div>
+//               </div>
+//             </div>
+//           </div>
+//         </div>
+
+//         {/* Product Details Tabs */}
+//         <div className="bg-white rounded-2xl shadow-lg p-8 mb-16">
+//           <div className="border-b mb-6">
+//             <div className="flex gap-8">
+//               <button className="pb-4 border-b-2 border-blue-600 font-medium text-blue-600">
+//                 Description
+//               </button>
+//               <button className="pb-4 border-b-2 border-transparent font-medium text-gray-600 hover:text-gray-900">
+//                 Specifications
+//               </button>
+//               <button className="pb-4 border-b-2 border-transparent font-medium text-gray-600 hover:text-gray-900">
+//                 Reviews
+//               </button>
+//             </div>
+//           </div>
+          
+//           <div className="prose max-w-none">
+//             <p className="text-gray-700 leading-relaxed">
+//               {product.description || 'This premium auto part is manufactured to the highest standards of quality and performance. Designed to meet or exceed OEM specifications, it ensures perfect fit and reliable operation for your vehicle.'}
+//             </p>
+            
+//             <h3 className="text-xl font-bold mt-6 mb-3">Key Benefits:</h3>
+//             <ul className="list-disc list-inside space-y-2 text-gray-700">
+//               <li>Premium quality materials for enhanced durability</li>
+//               <li>Precision engineering for perfect fit</li>
+//               <li>Meets or exceeds OEM standards</li>
+//               <li>Easy installation process</li>
+//               <li>Backed by comprehensive warranty</li>
+//             </ul>
+//           </div>
+//         </div>
+
+//         {/* Related Products */}
+//         {relatedProducts.length > 0 && (
+//           <div>
+//             <h2 className="text-3xl font-black text-gray-900 mb-8">Related Products</h2>
+//             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+//               {relatedProducts.map((relatedProduct) => (
+//                 <ProductCard
+//                   key={relatedProduct.id}
+//                   part={relatedProduct}
+//                   onAddToCart={cart.addToCart}
+//                   onViewDetails={(p) => navigate(`/product/${p.id}`)}
+//                 />
+//               ))}
+//             </div>
+//           </div>
+//         )}
+//       </div>
+//     </div>
+//   );
+// };
+
+
+// export default MainApp;

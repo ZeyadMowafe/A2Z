@@ -1,0 +1,835 @@
+from fastapi import FastAPI, HTTPException, Depends, status, UploadFile, File, Form
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel, EmailStr, Field
+from typing import List, Optional, Dict, Any
+from datetime import datetime
+from supabase import create_client, Client
+import os
+from dotenv import load_dotenv
+import uuid
+import asyncio
+from functools import lru_cache
+import logging
+
+# Setup logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+load_dotenv()
+
+app = FastAPI(
+    title="Auto Parts API", 
+    version="2.0.0",
+    docs_url="/api/docs",
+    redoc_url="/api/redoc"
+)
+
+# Middleware - GZip للضغط
+app.add_middleware(GZipMiddleware, minimum_size=1000)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000", "http://localhost:5173"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Cache Supabase client
+@lru_cache()
+def get_supabase_client() -> Client:
+    """Cached Supabase client"""
+    SUPABASE_URL = os.getenv("SUPABASE_URL")
+    SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+    if not SUPABASE_URL or not SUPABASE_KEY:
+        raise ValueError("Supabase credentials not found")
+    return create_client(SUPABASE_URL, SUPABASE_KEY)
+
+supabase = get_supabase_client()
+security = HTTPBearer()
+
+# Optimized Models with validation
+class CarBrand(BaseModel):
+    id: Optional[int] = None
+    name: str = Field(..., min_length=1, max_length=100)
+    description: str = Field(..., max_length=500)
+    logo_url: str
+    color: str = Field(..., pattern=r'^#[0-9A-Fa-f]{6}$')
+
+class CarModel(BaseModel):
+    id: Optional[int] = None
+    brand_id: int = Field(..., gt=0)
+    name: str = Field(..., min_length=1, max_length=100)
+    description: Optional[str] = Field(None, max_length=500)
+    image_url: Optional[str] = None
+
+class Category(BaseModel):
+    id: Optional[int] = None
+    name: str = Field(..., min_length=1, max_length=100)
+    description: Optional[str] = Field(None, max_length=500)
+
+class Product(BaseModel):
+    id: Optional[int] = None
+    name: str = Field(..., min_length=1, max_length=200)
+    price: float = Field(..., gt=0)
+    category_id: int = Field(..., gt=0)
+    brand_id: Optional[int] = Field(None, gt=0)
+    model_id: Optional[int] = Field(None, gt=0)
+    image_url: str
+    images: Optional[List[str]] = []
+    rating: Optional[float] = Field(4.5, ge=0, le=5)
+    reviews_count: Optional[int] = Field(0, ge=0)
+    stock_quantity: int = Field(..., ge=0)
+    description: Optional[str] = Field(None, max_length=1000)
+
+class CartItem(BaseModel):
+    product_id: int = Field(..., gt=0)
+    quantity: int = Field(..., gt=0, le=100)
+
+class OrderCreate(BaseModel):
+    customer_name: str = Field(..., min_length=1, max_length=100)
+    customer_email: EmailStr
+    customer_phone: str = Field(..., pattern=r'^\+?[0-9]{10,15}$')
+    items: List[CartItem] = Field(..., min_items=1)
+
+class User(BaseModel):
+    email: EmailStr
+    password: str = Field(..., min_length=6)
+
+# Cache for user roles
+user_role_cache: Dict[str, str] = {}
+
+# Optimized Auth Helper
+async def verify_admin_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Optimized admin verification with caching"""
+    try:
+        token = credentials.credentials
+        
+        # Check cache first
+        if token in user_role_cache:
+            if user_role_cache[token] == "admin":
+                return token
+            raise HTTPException(status_code=403, detail="Admin access required")
+        
+        response = supabase.auth.get_user(token)
+        
+        if not response or not response.user:
+            raise HTTPException(status_code=401, detail="Invalid token")
+        
+        user_id = response.user.id
+        user_data = supabase.table("users").select("role").eq("id", user_id).limit(1).execute()
+        
+        if not user_data.data:
+            raise HTTPException(status_code=403, detail="User not found")
+        
+        role = user_data.data[0].get("role")
+        
+        # Cache the role
+        user_role_cache[token] = role
+        
+        if role != "admin":
+            raise HTTPException(status_code=403, detail="Admin access required")
+        
+        return response.user
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Auth failed: {str(e)}")
+        raise HTTPException(status_code=401, detail="Authentication failed")
+
+# Optimized file upload functions
+async def upload_to_storage(
+    file: UploadFile, 
+    bucket: str,
+    max_size_mb: int = 5
+) -> str:
+    """Generic optimized file upload"""
+    try:
+        # Read file with size limit
+        file_content = await file.read()
+        file_size = len(file_content)
+        
+        if file_size > max_size_mb * 1024 * 1024:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"File too large. Max size: {max_size_mb}MB"
+            )
+        
+        # Generate unique filename
+        file_ext = file.filename.split('.')[-1].lower()
+        allowed_extensions = {'jpg', 'jpeg', 'png', 'webp', 'gif'}
+        
+        if file_ext not in allowed_extensions:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid file type. Allowed: {allowed_extensions}"
+            )
+        
+        unique_filename = f"{uuid.uuid4()}.{file_ext}"
+        
+        # Upload to Supabase Storage
+        supabase.storage.from_(bucket).upload(
+            unique_filename,
+            file_content,
+            {"content-type": file.content_type, "cache-control": "3600"}
+        )
+        
+        public_url = supabase.storage.from_(bucket).get_public_url(unique_filename)
+        
+        return public_url.rstrip('?')
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Upload failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
+
+async def upload_logo_to_supabase(file: UploadFile) -> str:
+    return await upload_to_storage(file, "brands-logos", max_size_mb=2)
+
+async def upload_image_to_supabase(file: UploadFile) -> str:
+    return await upload_to_storage(file, "product-images", max_size_mb=5)
+
+async def upload_model_image_to_supabase(file: UploadFile) -> str:
+    return await upload_to_storage(file, "car-models", max_size_mb=3)
+
+# Parallel image upload
+async def upload_multiple_images(images: List[UploadFile]) -> List[str]:
+    """Upload multiple images in parallel"""
+    if not images:
+        return []
+    
+    # Filter out empty files
+    valid_images = [img for img in images if img.filename]
+    
+    if not valid_images:
+        return []
+    
+    # Upload in parallel
+    tasks = [upload_image_to_supabase(img) for img in valid_images]
+    return await asyncio.gather(*tasks)
+
+# ==================== BRANDS ====================
+@app.get("/api/brands", response_model=List[Dict[str, Any]])
+async def get_brands():
+    """Get all brands - optimized query"""
+    result = supabase.table("car_brands")\
+        .select("id, name, description, logo_url, color")\
+        .order("name")\
+        .execute()
+    return result.data
+
+@app.post("/api/brands", response_model=Dict[str, Any])
+async def create_brand(
+    name: str = Form(...),
+    description: str = Form(...),
+    color: str = Form(...),
+    logo: UploadFile = File(...),
+    admin=Depends(verify_admin_token)
+):
+    """Create brand with optimized upload"""
+    try:
+        logo_url = await upload_logo_to_supabase(logo)
+        
+        brand_data = {
+            "name": name,
+            "description": description,
+            "color": color,
+            "logo_url": logo_url
+        }
+        
+        result = supabase.table("car_brands").insert(brand_data).execute()
+        logger.info(f"Brand created: {name}")
+        return result.data[0]
+    except Exception as e:
+        logger.error(f"Brand creation failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.put("/api/brands/{brand_id}", response_model=Dict[str, Any])
+async def update_brand(
+    brand_id: int,
+    name: str = Form(...),
+    description: str = Form(...),
+    color: str = Form(...),
+    logo: UploadFile = File(None),
+    existing_logo: Optional[str] = Form(None),
+    admin=Depends(verify_admin_token)
+):
+    """Update brand - optimized"""
+    try:
+        logo_url = existing_logo
+        
+        if logo and logo.filename:
+            logo_url = await upload_logo_to_supabase(logo)
+        
+        brand_data = {
+            "name": name,
+            "description": description,
+            "color": color,
+            "logo_url": logo_url
+        }
+        
+        result = supabase.table("car_brands")\
+            .update(brand_data)\
+            .eq("id", brand_id)\
+            .execute()
+            
+        if not result.data:
+            raise HTTPException(status_code=404, detail="Brand not found")
+        
+        logger.info(f"Brand updated: {brand_id}")
+        return result.data[0]
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Brand update failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.delete("/api/brands/{brand_id}")
+async def delete_brand(brand_id: int, admin=Depends(verify_admin_token)):
+    """Delete brand"""
+    supabase.table("car_brands").delete().eq("id", brand_id).execute()
+    logger.info(f"Brand deleted: {brand_id}")
+    return {"message": "Brand deleted"}
+
+# ==================== MODELS ====================
+@app.get("/api/brands/{brand_id}/models")
+async def get_models(brand_id: int):
+    """Get models by brand"""
+    result = supabase.table("car_models")\
+        .select("*")\
+        .eq("brand_id", brand_id)\
+        .order("name")\
+        .execute()
+    return result.data
+
+@app.get("/api/models")
+async def get_all_models():
+    """Get all models"""
+    result = supabase.table("car_models")\
+        .select("*")\
+        .order("name")\
+        .execute()
+    return result.data
+
+@app.post("/api/models")
+async def create_model(
+    name: str = Form(...),
+    brand_id: int = Form(...),
+    description: Optional[str] = Form(None),
+    image: UploadFile = File(None),
+    admin=Depends(verify_admin_token)
+):
+    """Create model with optimized upload"""
+    try:
+        image_url = None
+        if image and image.filename:
+            image_url = await upload_model_image_to_supabase(image)
+        
+        model_data = {
+            "name": name,
+            "brand_id": int(brand_id),
+        }
+        
+        if description:
+            model_data["description"] = description
+        if image_url:
+            model_data["image_url"] = image_url
+        
+        result = supabase.table("car_models").insert(model_data).execute()
+        logger.info(f"Model created: {name}")
+        return result.data[0]
+    except Exception as e:
+        logger.error(f"Model creation failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.put("/api/models/{model_id}")
+async def update_model(
+    model_id: int,
+    name: str = Form(...),
+    brand_id: int = Form(...),
+    description: Optional[str] = Form(None),
+    image: UploadFile = File(None),
+    existing_image: Optional[str] = Form(None),
+    admin=Depends(verify_admin_token)
+):
+    """Update model"""
+    try:
+        image_url = existing_image
+        
+        if image and image.filename:
+            image_url = await upload_model_image_to_supabase(image)
+        
+        model_data = {
+            "name": name,
+            "brand_id": int(brand_id),
+        }
+        
+        if description:
+            model_data["description"] = description
+        if image_url:
+            model_data["image_url"] = image_url
+        
+        result = supabase.table("car_models")\
+            .update(model_data)\
+            .eq("id", model_id)\
+            .execute()
+        
+        if not result.data:
+            raise HTTPException(status_code=404, detail="Model not found")
+        
+        logger.info(f"Model updated: {model_id}")
+        return result.data[0]
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Model update failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.delete("/api/models/{model_id}")
+async def delete_model(model_id: int, admin=Depends(verify_admin_token)):
+    """Delete model"""
+    supabase.table("car_models").delete().eq("id", model_id).execute()
+    logger.info(f"Model deleted: {model_id}")
+    return {"message": "Model deleted"}
+
+# ==================== CATEGORIES ====================
+@app.get("/api/categories")
+async def get_categories():
+    """Get all categories"""
+    result = supabase.table("categories")\
+        .select("*")\
+        .order("name")\
+        .execute()
+    return result.data
+
+@app.post("/api/categories")
+async def create_category(category: Category, admin=Depends(verify_admin_token)):
+    """Create category"""
+    data = category.dict(exclude={'id'}, exclude_none=True)
+    result = supabase.table("categories").insert(data).execute()
+    return result.data[0]
+
+@app.put("/api/categories/{category_id}")
+async def update_category(
+    category_id: int, 
+    category: Category, 
+    admin=Depends(verify_admin_token)
+):
+    """Update category"""
+    data = category.dict(exclude={'id'}, exclude_none=True)
+    result = supabase.table("categories")\
+        .update(data)\
+        .eq("id", category_id)\
+        .execute()
+    if not result.data:
+        raise HTTPException(status_code=404, detail="Category not found")
+    return result.data[0]
+
+@app.delete("/api/categories/{category_id}")
+async def delete_category(category_id: int, admin=Depends(verify_admin_token)):
+    """Delete category"""
+    supabase.table("categories").delete().eq("id", category_id).execute()
+    return {"message": "Category deleted"}
+
+# ==================== PRODUCTS ====================
+@app.post("/api/products")
+async def create_product(
+    name: str = Form(...),
+    price: float = Form(...),
+    category_id: int = Form(...),
+    stock_quantity: int = Form(...),
+    brand_id: Optional[int] = Form(None),
+    model_id: Optional[int] = Form(None),
+    description: Optional[str] = Form(None),
+    images: List[UploadFile] = File(default=[]),
+    admin=Depends(verify_admin_token)
+):
+    """Create product with parallel image upload"""
+    try:
+        # Upload all images in parallel
+        image_urls = await upload_multiple_images(images)
+        
+        main_image = image_urls[0] if image_urls else ""
+        additional_images = image_urls[1:] if len(image_urls) > 1 else []
+        
+        product_data = {
+            "name": name,
+            "price": float(price),
+            "category_id": int(category_id),
+            "stock_quantity": int(stock_quantity),
+            "image_url": main_image,
+            "images": additional_images
+        }
+        
+        if description:
+            product_data["description"] = description
+        if brand_id and int(brand_id) > 0:
+            product_data["brand_id"] = int(brand_id)
+        if model_id and int(model_id) > 0:
+            product_data["model_id"] = int(model_id)
+        
+        result = supabase.table("products").insert(product_data).execute()
+        logger.info(f"Product created: {name}")
+        return result.data[0]
+    except Exception as e:
+        logger.error(f"Product creation failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.put("/api/products/{product_id}")
+async def update_product(
+    product_id: int,
+    name: str = Form(...),
+    price: float = Form(...),
+    category_id: int = Form(...),
+    stock_quantity: int = Form(...),
+    brand_id: Optional[int] = Form(None),
+    model_id: Optional[int] = Form(None),
+    description: Optional[str] = Form(None),
+    images: List[UploadFile] = File(default=[]),
+    existing_images: Optional[str] = Form(None),
+    admin=Depends(verify_admin_token)
+):
+    """Update product with parallel image upload"""
+    try:
+        import json
+        
+        # Parse existing images
+        existing_image_urls = []
+        if existing_images and existing_images not in ('null', ''):
+            try:
+                existing_image_urls = json.loads(existing_images)
+            except:
+                existing_image_urls = []
+        
+        # Upload new images in parallel
+        new_image_urls = await upload_multiple_images(images)
+        existing_image_urls.extend(new_image_urls)
+        
+        main_image = existing_image_urls[0] if existing_image_urls else ""
+        additional_images = existing_image_urls[1:] if len(existing_image_urls) > 1 else []
+        
+        product_data = {
+            "name": name,
+            "price": float(price),
+            "category_id": int(category_id),
+            "stock_quantity": int(stock_quantity),
+            "image_url": main_image,
+            "images": additional_images
+        }
+        
+        if description:
+            product_data["description"] = description
+        product_data["brand_id"] = int(brand_id) if brand_id and int(brand_id) > 0 else None
+        product_data["model_id"] = int(model_id) if model_id and int(model_id) > 0 else None
+        
+        result = supabase.table("products")\
+            .update(product_data)\
+            .eq("id", product_id)\
+            .execute()
+            
+        if not result.data:
+            raise HTTPException(status_code=404, detail="Product not found")
+        
+        logger.info(f"Product updated: {product_id}")
+        return result.data[0]
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Product update failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/products")
+async def get_products(
+    category_id: Optional[int] = None,
+    brand_id: Optional[int] = None,
+    model_id: Optional[int] = None,
+    search: Optional[str] = None,
+    limit: int = 100,
+    offset: int = 0
+):
+    """Get products with optimized query and pagination"""
+    query = supabase.table("products").select("""
+        id, name, price, stock_quantity, image_url, images, rating, reviews_count, description,
+        category_id, brand_id, model_id,
+        categories!inner(id, name),
+        car_brands(id, name),
+        car_models(id, name)
+    """)
+    
+    if category_id:
+        query = query.eq("category_id", category_id)
+    if brand_id:
+        query = query.eq("brand_id", brand_id)
+    if model_id:
+        query = query.eq("model_id", model_id)
+    
+    # Add pagination
+    query = query.range(offset, offset + limit - 1)
+    
+    result = query.execute()
+    products = result.data
+    
+    # Optimized search
+    if search:
+        search_lower = search.lower()
+        products = [
+            {
+                **p,
+                'category_name': p.get('categories', {}).get('name'),
+                'brand_name': p.get('car_brands', {}).get('name') if p.get('car_brands') else None,
+                'model_name': p.get('car_models', {}).get('name') if p.get('car_models') else None,
+            }
+            for p in products
+            if any([
+                search_lower in p.get('name', '').lower(),
+                p.get('description') and search_lower in p['description'].lower(),
+                p.get('categories') and search_lower in p['categories'].get('name', '').lower(),
+                p.get('car_brands') and search_lower in p['car_brands'].get('name', '').lower(),
+                p.get('car_models') and search_lower in p['car_models'].get('name', '').lower()
+            ])
+        ]
+    else:
+        products = [
+            {
+                **p,
+                'category_name': p.get('categories', {}).get('name'),
+                'brand_name': p.get('car_brands', {}).get('name') if p.get('car_brands') else None,
+                'model_name': p.get('car_models', {}).get('name') if p.get('car_models') else None,
+            }
+            for p in products
+        ]
+    
+    return products
+
+@app.get("/api/products/{product_id}")
+async def get_product(product_id: int):
+    """Get single product"""
+    result = supabase.table("products")\
+        .select("*")\
+        .eq("id", product_id)\
+        .limit(1)\
+        .execute()
+    if not result.data:
+        raise HTTPException(status_code=404, detail="Product not found")
+    return result.data[0]
+
+@app.delete("/api/products/{product_id}")
+async def delete_product(product_id: int, admin=Depends(verify_admin_token)):
+    """Delete product"""
+    supabase.table("products").delete().eq("id", product_id).execute()
+    logger.info(f"Product deleted: {product_id}")
+    return {"message": "Product deleted"}
+
+# ==================== ORDERS ====================
+@app.post("/api/orders")
+async def create_order(order: OrderCreate):
+    """Create order with optimized calculation"""
+    try:
+        # Fetch all products in one query
+        product_ids = [item.product_id for item in order.items]
+        products_result = supabase.table("products")\
+            .select("id, price, name, stock_quantity")\
+            .in_("id", product_ids)\
+            .execute()
+        
+        if len(products_result.data) != len(product_ids):
+            raise HTTPException(status_code=404, detail="Some products not found")
+        
+        # Create price lookup
+        price_map = {p["id"]: p for p in products_result.data}
+        
+        # Calculate total and prepare items
+        total = 0
+        items_with_prices = []
+        
+        for item in order.items:
+            product = price_map.get(item.product_id)
+            if not product:
+                raise HTTPException(
+                    status_code=404, 
+                    detail=f"Product {item.product_id} not found"
+                )
+            
+            # Check stock
+            if product["stock_quantity"] < item.quantity:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Insufficient stock for {product['name']}"
+                )
+            
+            price = float(product["price"])
+            total += price * item.quantity
+            items_with_prices.append({
+                "product_id": item.product_id,
+                "quantity": item.quantity,
+                "price": price
+            })
+        
+        deposit = total * 0.5
+        
+        # Create order
+        order_data = {
+            "customer_name": order.customer_name,
+            "customer_email": order.customer_email,
+            "customer_phone": order.customer_phone,
+            "total_amount": total,
+            "deposit_amount": deposit,
+            "status": "pending"
+        }
+        
+        order_result = supabase.table("orders").insert(order_data).execute()
+        order_id = order_result.data[0]["id"]
+        
+        # Insert order items in batch
+        order_items = [
+            {
+                "order_id": order_id,
+                "product_id": item["product_id"],
+                "quantity": item["quantity"],
+                "price": item["price"]
+            }
+            for item in items_with_prices
+        ]
+        
+        supabase.table("order_items").insert(order_items).execute()
+        
+        logger.info(f"Order created: {order_id}")
+        return order_result.data[0]
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Order creation failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/orders")
+async def get_orders(
+    admin=Depends(verify_admin_token),
+    limit: int = 50,
+    offset: int = 0
+):
+    """Get orders with pagination"""
+    result = supabase.table("orders")\
+        .select("*")\
+        .order("created_at", desc=True)\
+        .range(offset, offset + limit - 1)\
+        .execute()
+    return result.data
+
+@app.get("/api/orders/{order_id}")
+async def get_order(order_id: int, admin=Depends(verify_admin_token)):
+    """Get single order with items"""
+    order = supabase.table("orders")\
+        .select("*")\
+        .eq("id", order_id)\
+        .limit(1)\
+        .execute()
+        
+    if not order.data:
+        raise HTTPException(status_code=404, detail="Order not found")
+    
+    items = supabase.table("order_items")\
+        .select("*, products(*)")\
+        .eq("order_id", order_id)\
+        .execute()
+    
+    return {
+        **order.data[0],
+        "items": items.data
+    }
+
+@app.put("/api/orders/{order_id}/status")
+async def update_order_status(
+    order_id: int, 
+    status: str, 
+    admin=Depends(verify_admin_token)
+):
+    """Update order status"""
+    valid_statuses = ["pending", "confirmed", "processing", "shipped", "delivered", "cancelled"]
+    if status not in valid_statuses:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Invalid status. Must be one of: {valid_statuses}"
+        )
+    
+    result = supabase.table("orders")\
+        .update({"status": status})\
+        .eq("id", order_id)\
+        .execute()
+        
+    if not result.data:
+        raise HTTPException(status_code=404, detail="Order not found")
+    
+    logger.info(f"Order {order_id} status updated to {status}")
+    return result.data[0]
+
+# ==================== AUTH ====================
+@app.post("/api/auth/register")
+async def register(user: User):
+    """Register new user"""
+    try:
+        result = supabase.auth.sign_up({
+            "email": user.email,
+            "password": user.password
+        })
+        
+        if result.user:
+            supabase.table("users").insert({
+                "id": result.user.id,
+                "email": user.email,
+                "role": "customer"
+            }).execute()
+        
+        logger.info(f"User registered: {user.email}")
+        return {"message": "User registered successfully"}
+    except Exception as e:
+        logger.error(f"Registration failed: {str(e)}")
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/api/auth/login")
+async def login(user: User):
+    """Login user"""
+    try:
+        result = supabase.auth.sign_in_with_password({
+            "email": user.email,
+            "password": user.password
+        })
+        
+        logger.info(f"User logged in: {user.email}")
+        return {
+            "access_token": result.session.access_token,
+            "user": result.user
+        }
+    except Exception as e:
+        logger.error(f"Login failed: {str(e)}")
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+
+# ==================== HEALTH CHECK ====================
+@app.get("/")
+async def root():
+    return {
+        "message": "Auto Parts API",
+        "version": "2.0.0",
+        "status": "optimized"
+    }
+
+@app.get("/health")
+async def health_check():
+    """Health check endpoint"""
+    return {
+        "status": "healthy",
+        "timestamp": datetime.now().isoformat()
+    }
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(
+        app, 
+        host="0.0.0.0", 
+        port=8000,
+        workers=4,  # Multiple workers for better performance
+        log_level="info"
+    )
