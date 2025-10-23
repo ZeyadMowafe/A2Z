@@ -33,11 +33,9 @@ const ProductDetailsView = ({ product, loading, onAddToCart, onOpenCart, onBack 
   };
 
   const handleOrderNow = () => {
-    // Add to cart first
     for (let i = 0; i < quantity; i++) {
       onAddToCart(product);
     }
-    // فتح الـ cart
     if (onOpenCart) {
       onOpenCart();
     }
@@ -104,19 +102,11 @@ const ProductDetailsView = ({ product, loading, onAddToCart, onOpenCart, onBack 
           <div className="space-y-4">
             {/* Main Image with Smooth Transition */}
             <div 
-              className="relative aspect-square overflow-hidden bg-gradient-to-br from-slate-800 to-slate-900 border-2 border-slate-800 group"
+              className="relative aspect-square overflow-hidden bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700/50 rounded-lg group"
               onTouchStart={handleTouchStart}
               onTouchMove={handleTouchMove}
               onTouchEnd={handleTouchEnd}
             >
-              {/* Grid Pattern */}
-              <div className="absolute inset-0 opacity-5">
-                <div className="absolute inset-0" style={{
-                  backgroundImage: 'radial-gradient(circle, rgba(59, 130, 246, 0.4) 1px, transparent 1px)',
-                  backgroundSize: '24px 24px'
-                }}></div>
-              </div>
-
               {/* Animated Image with Framer Motion */}
               <AnimatePresence mode="wait">
                 <motion.img
@@ -131,25 +121,25 @@ const ProductDetailsView = ({ product, loading, onAddToCart, onOpenCart, onBack 
                 />
               </AnimatePresence>
               
-              {/* Radial Glow */}
-              <div className="absolute inset-0 bg-gradient-radial from-blue-500/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
+              {/* Subtle Radial Glow */}
+              <div className="absolute inset-0 bg-gradient-radial from-blue-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
 
               {productImages.length > 1 && (
                 <>
                   {/* Previous Button */}
                   <button
                     onClick={prevImage}
-                    className="absolute left-2 lg:left-4 top-1/2 -translate-y-1/2 bg-slate-800/95 hover:bg-slate-700 border-2 border-slate-600 hover:border-blue-500 p-2 lg:p-3 transition-all duration-300 group/btn z-20"
+                    className="absolute left-3 lg:left-4 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 backdrop-blur-md p-2.5 lg:p-3 rounded-full transition-all duration-300 z-20"
                   >
-                    <ChevronLeft className="w-5 h-5 lg:w-6 lg:h-6 text-slate-300 group-hover/btn:text-blue-400 transition-colors" />
+                    <ChevronLeft className="w-5 h-5 lg:w-6 lg:h-6 text-white/90" />
                   </button>
                   
                   {/* Next Button */}
                   <button
                     onClick={nextImage}
-                    className="absolute right-2 lg:right-4 top-1/2 -translate-y-1/2 bg-slate-800/95 hover:bg-slate-700 border-2 border-slate-600 hover:border-blue-500 p-2 lg:p-3 transition-all duration-300 group/btn z-20"
+                    className="absolute right-3 lg:right-4 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 backdrop-blur-md p-2.5 lg:p-3 rounded-full transition-all duration-300 z-20"
                   >
-                    <ChevronRight className="w-5 h-5 lg:w-6 lg:h-6 text-slate-300 group-hover/btn:text-blue-400 transition-colors" />
+                    <ChevronRight className="w-5 h-5 lg:w-6 lg:h-6 text-white/90" />
                   </button>
                   
                   {/* Image Counter */}
@@ -157,21 +147,17 @@ const ProductDetailsView = ({ product, loading, onAddToCart, onOpenCart, onBack 
                     key={selectedImageIndex}
                     initial={{ scale: 0.8, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
-                    className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-slate-800/95 backdrop-blur-sm border border-blue-500/30 px-4 py-2 text-blue-100 text-sm font-bold tracking-wider z-20"
+                    className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/50 backdrop-blur-md rounded-full px-4 py-2 text-white/90 text-sm font-medium z-20"
                   >
                     {selectedImageIndex + 1} / {productImages.length}
                   </motion.div>
 
                   {/* Swipe Indicator on Mobile */}
-                  <div className="lg:hidden absolute top-4 left-1/2 -translate-x-1/2 bg-slate-800/90 border border-slate-600 px-3 py-1 text-slate-400 text-xs font-semibold z-20">
-                    ← Swipe to browse →
+                  <div className="lg:hidden absolute top-4 left-1/2 -translate-x-1/2 bg-black/40 backdrop-blur-md rounded-full px-3 py-1 text-white/70 text-xs font-medium z-20">
+                    ← Swipe →
                   </div>
                 </>
               )}
-
-              {/* Corner Accents */}
-              <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-blue-500/30 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-              <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-blue-500/30 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
             </div>
 
             {/* Thumbnails with Smooth Scroll */}
@@ -184,10 +170,10 @@ const ProductDetailsView = ({ product, loading, onAddToCart, onOpenCart, onBack 
                       onClick={() => setSelectedImageIndex(index)}
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
-                      className={`aspect-square overflow-hidden bg-slate-800 border-2 transition-all duration-300 ${
+                      className={`aspect-square overflow-hidden bg-slate-800 rounded-lg border transition-all duration-300 ${
                         selectedImageIndex === index 
-                          ? 'border-blue-500 ring-2 ring-blue-500/30' 
-                          : 'border-slate-700 hover:border-blue-400'
+                          ? 'border-blue-400/60 ring-2 ring-blue-400/20' 
+                          : 'border-slate-700/50 opacity-60 hover:opacity-100'
                       }`}
                     >
                       <img
@@ -195,12 +181,6 @@ const ProductDetailsView = ({ product, loading, onAddToCart, onOpenCart, onBack 
                         alt={`${product.name} thumbnail ${index + 1}`}
                         className="w-full h-full object-cover"
                       />
-                      {selectedImageIndex === index && (
-                        <motion.div
-                          layoutId="activeThumb"
-                          className="absolute inset-0 bg-blue-500/10"
-                        />
-                      )}
                     </motion.button>
                   ))}
                 </div>
@@ -218,17 +198,17 @@ const ProductDetailsView = ({ product, loading, onAddToCart, onOpenCart, onBack 
               className="flex flex-wrap gap-2"
             >
               {product.brand_name && (
-                <span className="bg-slate-800 border border-slate-700 text-blue-400 px-3 py-1.5 text-xs font-bold tracking-wider uppercase">
+                <span className="bg-blue-500/10 border border-blue-500/20 text-blue-300 px-3 py-1.5 text-xs font-medium rounded-full">
                   {product.brand_name}
                 </span>
               )}
               {product.model_name && (
-                <span className="bg-slate-800 border border-slate-700 text-emerald-400 px-3 py-1.5 text-xs font-bold tracking-wider uppercase">
+                <span className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 px-3 py-1.5 text-xs font-medium rounded-full">
                   {product.model_name}
                 </span>
               )}
               {product.category_name && (
-                <span className="bg-slate-800 border border-slate-700 text-purple-400 px-3 py-1.5 text-xs font-bold tracking-wider uppercase">
+                <span className="bg-purple-500/10 border border-purple-500/20 text-purple-300 px-3 py-1.5 text-xs font-medium rounded-full">
                   {product.category_name}
                 </span>
               )}
@@ -240,16 +220,16 @@ const ProductDetailsView = ({ product, loading, onAddToCart, onOpenCart, onBack 
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
             >
-              <h1 className="text-3xl lg:text-5xl font-black text-white mb-4 tracking-tight leading-tight">
+              <h1 className="text-3xl lg:text-4xl font-semibold text-white mb-3 leading-snug">
                 {product.name}
               </h1>
               
               {/* Decorative Line */}
               <motion.div 
                 initial={{ width: 0 }}
-                animate={{ width: 96 }}
+                animate={{ width: 80 }}
                 transition={{ delay: 0.5, duration: 0.8 }}
-                className="h-[2px] bg-gradient-to-r from-blue-500 to-transparent mb-6"
+                className="h-[1px] bg-gradient-to-r from-blue-400/60 to-transparent mb-6"
               ></motion.div>
             </motion.div>
 
@@ -258,31 +238,23 @@ const ProductDetailsView = ({ product, loading, onAddToCart, onOpenCart, onBack 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 }}
-              className="bg-gradient-to-r from-slate-800 to-slate-900 border-2 border-slate-700 p-6"
+              className="bg-gradient-to-br from-slate-800/60 to-slate-900/60 backdrop-blur-sm border border-slate-700/50 rounded-xl p-6"
             >
               <div className="flex items-end justify-between">
                 <div>
-                  <span className="text-sm text-slate-400 font-semibold tracking-wider uppercase block mb-2">Price</span>
+                  <span className="text-xs text-slate-400 font-medium uppercase tracking-wide block mb-2">Price</span>
                   <div className="flex items-baseline gap-2">
-                    <span className="text-base text-blue-400 font-bold">EGP</span>
-                    <span className="text-4xl lg:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-blue-100">
+                    <span className="text-sm text-blue-300 font-medium">EGP</span>
+                    <span className="text-4xl lg:text-5xl font-semibold text-white">
                       {product.price}
                     </span>
                   </div>
                 </div>
-                <div className="flex items-center gap-2 bg-slate-900 border border-emerald-500/30 px-4 py-2">
-                  <CheckCircle className="w-5 h-5 text-emerald-400" />
-                  <span className="font-bold text-emerald-100 text-sm tracking-wide">IN STOCK</span>
+                <div className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-3 py-2">
+                  <CheckCircle className="w-4 h-4 text-emerald-400" />
+                  <span className="font-medium text-emerald-300 text-xs">In Stock</span>
                 </div>
               </div>
-              
-              {/* Bottom Accent */}
-              <motion.div 
-                initial={{ scaleX: 0 }}
-                animate={{ scaleX: 1 }}
-                transition={{ delay: 0.6, duration: 0.8 }}
-                className="mt-4 h-[1px] bg-gradient-to-r from-blue-500 via-purple-500 to-transparent origin-left"
-              ></motion.div>
             </motion.div>
 
             {/* Description */}
@@ -290,9 +262,9 @@ const ProductDetailsView = ({ product, loading, onAddToCart, onOpenCart, onBack 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5 }}
-              className="bg-slate-800/50 border border-slate-700 p-6"
+              className="bg-slate-800/40 backdrop-blur-sm border border-slate-700/30 rounded-xl p-5"
             >
-              <p className="text-slate-300 text-sm lg:text-base leading-relaxed">
+              <p className="text-slate-300 text-sm lg:text-base leading-relaxed font-light">
                 {product.description || 'Premium quality auto part designed for optimal performance and durability. Engineered to meet the highest standards of excellence.'}
               </p>
             </motion.div>
@@ -302,16 +274,16 @@ const ProductDetailsView = ({ product, loading, onAddToCart, onOpenCart, onBack 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.6 }}
-              className="bg-gradient-to-br from-slate-800 to-slate-900 border-2 border-slate-700 p-6"
+              className="bg-gradient-to-br from-slate-800/60 to-slate-900/60 backdrop-blur-sm border border-slate-700/50 rounded-xl p-6"
             >
               <div className="flex items-center justify-between mb-4">
-                <span className="font-bold text-white text-lg tracking-wide">Quantity</span>
-                <div className="flex items-center gap-3">
+                <span className="font-medium text-white text-base">Quantity</span>
+                <div className="flex items-center gap-4">
                   <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                    className="w-10 h-10 bg-slate-700 hover:bg-slate-600 border border-slate-600 hover:border-blue-500 text-white flex items-center justify-center transition-all duration-300"
+                    className="w-10 h-10 bg-slate-700/50 hover:bg-slate-600/50 rounded-lg text-white flex items-center justify-center transition-colors duration-300"
                   >
                     <Minus className="w-4 h-4" />
                   </motion.button>
@@ -319,7 +291,7 @@ const ProductDetailsView = ({ product, loading, onAddToCart, onOpenCart, onBack 
                     key={quantity}
                     initial={{ scale: 1.2 }}
                     animate={{ scale: 1 }}
-                    className="w-16 text-center text-2xl font-black text-white"
+                    className="w-14 text-center text-2xl font-semibold text-white"
                   >
                     {quantity}
                   </motion.span>
@@ -327,32 +299,32 @@ const ProductDetailsView = ({ product, loading, onAddToCart, onOpenCart, onBack 
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={() => setQuantity(quantity + 1)}
-                    className="w-10 h-10 bg-slate-700 hover:bg-slate-600 border border-slate-600 hover:border-blue-500 text-white flex items-center justify-center transition-all duration-300"
+                    className="w-10 h-10 bg-slate-700/50 hover:bg-slate-600/50 rounded-lg text-white flex items-center justify-center transition-colors duration-300"
                   >
                     <Plus className="w-4 h-4" />
                   </motion.button>
                 </div>
               </div>
               
-              <div className="h-[1px] bg-slate-700 my-4"></div>
+              <div className="h-px bg-slate-700/50 my-4"></div>
               
               <div className="flex items-center justify-between">
-                <span className="text-slate-400 font-semibold">Total Price</span>
+                <span className="text-slate-400 font-medium text-sm">Total Price</span>
                 <motion.div 
                   key={quantity}
                   initial={{ scale: 1.1 }}
                   animate={{ scale: 1 }}
                   className="flex items-baseline gap-2"
                 >
-                  <span className="text-sm text-blue-400 font-bold">EGP</span>
-                  <span className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-blue-100">
+                  <span className="text-sm text-blue-300 font-medium">EGP</span>
+                  <span className="text-3xl font-semibold text-white">
                     {(product.price * quantity).toFixed(2)}
                   </span>
                 </motion.div>
               </div>
             </motion.div>
 
-            {/* Action Buttons - Add to Cart & Order Now */}
+            {/* Action Buttons */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -364,14 +336,14 @@ const ProductDetailsView = ({ product, loading, onAddToCart, onOpenCart, onBack 
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={handleAddToCart}
-                className="group/btn relative bg-slate-800 hover:bg-slate-700 border-2 border-slate-600 hover:border-blue-500 text-white py-4 font-bold text-base tracking-wider uppercase transition-all duration-300 flex items-center justify-center gap-2 overflow-hidden"
+                className="group/btn relative bg-slate-800/80 hover:bg-slate-700/80 backdrop-blur-sm border border-slate-600/50 hover:border-blue-400/50 rounded-lg text-white py-4 font-medium text-sm transition-all duration-300 flex items-center justify-center gap-2 overflow-hidden"
               >
                 <ShoppingBag className="w-5 h-5 relative z-10" />
                 <span className="relative z-10 hidden sm:inline">Add to Cart</span>
                 <span className="relative z-10 sm:hidden">Add</span>
                 
                 {/* Hover Glow */}
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-600/0 via-blue-600/20 to-blue-600/0 transform translate-x-[-100%] group-hover/btn:translate-x-[100%] transition-transform duration-700"></div>
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-600/0 via-blue-600/10 to-blue-600/0 transform translate-x-[-100%] group-hover/btn:translate-x-[100%] transition-transform duration-700"></div>
               </motion.button>
 
               {/* Order Now Button */}
@@ -379,7 +351,7 @@ const ProductDetailsView = ({ product, loading, onAddToCart, onOpenCart, onBack 
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={handleOrderNow}
-                className="group/btn relative bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white py-4 font-black text-base tracking-wider uppercase transition-all duration-300 flex items-center justify-center gap-2 shadow-2xl shadow-emerald-600/50 hover:shadow-emerald-500/60 overflow-hidden"
+                className="group/btn relative bg-gradient-to-r from-emerald-600/90 to-emerald-500/90 hover:from-emerald-500/90 hover:to-emerald-400/90 backdrop-blur-sm rounded-lg text-white py-4 font-semibold text-sm transition-all duration-300 flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/20 hover:shadow-emerald-500/30 overflow-hidden"
               >
                 <Zap className="w-5 h-5 relative z-10" />
                 <span className="relative z-10 hidden sm:inline">Order Now</span>
@@ -387,10 +359,7 @@ const ProductDetailsView = ({ product, loading, onAddToCart, onOpenCart, onBack 
                 <ArrowRight className="w-5 h-5 relative z-10 group-hover/btn:translate-x-1 transition-transform" />
                 
                 {/* Metallic Shine */}
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent transform -skew-x-12 translate-x-[-200%] group-hover/btn:translate-x-[200%] transition-transform duration-1000"></div>
-                
-                {/* Bottom Glow */}
-                <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-white to-transparent opacity-50"></div>
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent transform -skew-x-12 translate-x-[-200%] group-hover/btn:translate-x-[200%] transition-transform duration-1000"></div>
               </motion.button>
             </motion.div>
 
@@ -399,9 +368,9 @@ const ProductDetailsView = ({ product, loading, onAddToCart, onOpenCart, onBack 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.8 }}
-              className="bg-slate-800/50 border border-slate-700 p-6"
+              className="bg-slate-800/40 backdrop-blur-sm border border-slate-700/30 rounded-xl p-6"
             >
-              <h3 className="font-black text-white text-xl mb-5 tracking-wide">Premium Features</h3>
+              <h3 className="font-semibold text-white text-lg mb-5">Premium Features</h3>
               <div className="grid grid-cols-2 gap-4">
                 {[
                   { icon: CheckCircle, text: '100% Original', color: 'emerald' },
@@ -416,10 +385,10 @@ const ProductDetailsView = ({ product, loading, onAddToCart, onOpenCart, onBack 
                     transition={{ delay: 0.9 + index * 0.1 }}
                     className="flex items-center gap-3"
                   >
-                    <div className={`w-10 h-10 bg-${feature.color}-500/10 border border-${feature.color}-500/30 flex items-center justify-center`}>
+                    <div className={`w-9 h-9 bg-${feature.color}-500/10 border border-${feature.color}-500/20 rounded-lg flex items-center justify-center`}>
                       <feature.icon className={`w-5 h-5 text-${feature.color}-400`} />
                     </div>
-                    <span className="text-slate-300 font-semibold text-sm">{feature.text}</span>
+                    <span className="text-slate-300 font-medium text-sm">{feature.text}</span>
                   </motion.div>
                 ))}
               </div>
@@ -432,19 +401,19 @@ const ProductDetailsView = ({ product, loading, onAddToCart, onOpenCart, onBack 
           initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 1 }}
-          className="mt-16 bg-gradient-to-br from-slate-800 to-slate-900 border-2 border-slate-700 p-8 lg:p-12"
+          className="mt-16 bg-gradient-to-br from-slate-800/60 to-slate-900/60 backdrop-blur-sm border border-slate-700/50 rounded-xl p-8 lg:p-12"
         >
-          <h3 className="text-3xl font-black text-white mb-8 tracking-wide">Product Details</h3>
+          <h3 className="text-2xl font-semibold text-white mb-6">Product Details</h3>
           
-          <div className="h-[2px] bg-gradient-to-r from-blue-500 via-purple-500 to-transparent mb-8"></div>
+          <div className="h-px bg-gradient-to-r from-blue-400/40 via-purple-400/40 to-transparent mb-8"></div>
           
           <div className="space-y-6 text-slate-300 leading-relaxed">
-            <p className="text-base lg:text-lg">
+            <p className="text-base lg:text-lg font-light">
               This premium auto part is manufactured to the highest standards of quality and performance. 
               Designed to meet or exceed OEM specifications, it ensures perfect fit and reliable operation for your vehicle.
             </p>
             
-            <h4 className="text-2xl font-bold text-white mt-8 mb-5">Key Benefits</h4>
+            <h4 className="text-xl font-semibold text-white mt-8 mb-5">Key Benefits</h4>
             <ul className="space-y-4">
               {[
                 'Premium quality materials for enhanced durability',
@@ -459,10 +428,10 @@ const ProductDetailsView = ({ product, loading, onAddToCart, onOpenCart, onBack 
                   transition={{ delay: 1.1 + index * 0.1 }}
                   className="flex items-start gap-4"
                 >
-                  <div className="w-6 h-6 bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <CheckCircle className="w-4 h-4 text-emerald-400" />
+                  <div className="w-5 h-5 bg-emerald-500/10 border border-emerald-500/20 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <CheckCircle className="w-3 h-3 text-emerald-400" />
                   </div>
-                  <span className="text-slate-300">{benefit}</span>
+                  <span className="text-slate-300 font-light">{benefit}</span>
                 </motion.li>
               ))}
             </ul>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate, useLocation, Routes, Route } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { MessageCircle } from 'lucide-react'; // استيراد أيقونة الواتساب
 import { pageVariants, pageTransition } from './constants/animations';
 import useApi from './hooks/useApi';
 import useCart from './hooks/useCart';
@@ -28,6 +29,8 @@ const HomeView = ({ brands, products, brandsRef, onBrandClick, onScrollToBrands 
       brandsRef={brandsRef} 
       onBrandClick={onBrandClick} 
       productsCount={products.length} 
+      
+      
     />
   </>
 );
@@ -325,44 +328,53 @@ const MainApp = () => {
     setShowCheckout(true);
   };
 
-const handleCheckoutComplete = async () => {
-  try {
-    const orderData = {
-      customer_name: customerInfo.name,
-      customer_email: customerInfo.email,
-      customer_phone: customerInfo.phone,
-      customer_address: customerInfo.address,  // ✅ غيّر من shipping_address لـ customer_address
-      items: cart.cart.map(item => ({
-        product_id: item.id,
-        quantity: item.quantity,
-        price: item.price
-      })),
-      total_amount: cart.getTotalPrice()
-    };
+  const handleCheckoutComplete = async () => {
+    try {
+      const orderData = {
+        customer_name: customerInfo.name,
+        customer_email: customerInfo.email,
+        customer_phone: customerInfo.phone,
+        customer_address: customerInfo.address,
+        items: cart.cart.map(item => ({
+          product_id: item.id,
+          quantity: item.quantity,
+          price: item.price
+        })),
+        total_amount: cart.getTotalPrice()
+      };
 
-    console.log('[DEBUG] Sending order data:', orderData);
+      console.log('[DEBUG] Sending order data:', orderData);
 
-    const result = await fetchData('/orders', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(orderData)
-    });
+      const result = await fetchData('/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(orderData)
+      });
 
-    setShowCheckout(false);
-    setOrderSuccess(true);
-    cart.setCart([]);
-    setCustomerInfo({ name: '', email: '', phone: '', address: '' });
-    
-    setTimeout(() => {
-      setOrderSuccess(false);
-    }, 5000);
-    
-    return result;
-  } catch (error) {
-    console.error('Error creating order:', error);
-    throw error;
-  }
-};
+      setShowCheckout(false);
+      setOrderSuccess(true);
+      cart.setCart([]);
+      setCustomerInfo({ name: '', email: '', phone: '', address: '' });
+      
+      setTimeout(() => {
+        setOrderSuccess(false);
+      }, 5000);
+      
+      return result;
+    } catch (error) {
+      console.error('Error creating order:', error);
+      throw error;
+    }
+  };
+
+  // فانكشن فتح الواتساب
+  const handleWhatsAppClick = () => {
+    // غير الرقم ده برقمك (بدون علامة + أو 00)
+    const phoneNumber = '201119890713'; // مثال: 201234567890
+    const message = 'مرحباً، أريد الاستفسار عن المنتجات'; // الرسالة الافتراضية
+    const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank');
+  };
 
   const productsByCategory = categories.reduce((acc, category) => {
     acc[category.name] = products.filter(p => p.category_id === category.id);
@@ -436,7 +448,6 @@ const handleCheckoutComplete = async () => {
               onAddToCart={cart.addToCart}
               onOpenCart={() => setShowCart(true)}
               onBack={() => navigate(-1)}
-              
             />
           )}
 
@@ -463,6 +474,27 @@ const handleCheckoutComplete = async () => {
       </AnimatePresence>
 
       <Footer />
+
+      {/* زر الواتساب الثابت */}
+      <motion.button
+        onClick={handleWhatsAppClick}
+        initial={{ scale: 0 }}
+        animate={{ scale: 1 }}
+        whileHover={{ scale: 1.1 }}
+        whileTap={{ scale: 0.9 }}
+        className="fixed bottom-6 left-6 z-50 bg-gradient-to-br from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white rounded-full p-4 shadow-2xl shadow-green-500/50 hover:shadow-green-600/60 transition-all duration-300 group"
+        aria-label="Contact us on WhatsApp"
+      >
+        <MessageCircle className="w-7 h-7" />
+        
+        {/* دائرة النبض */}
+        <span className="absolute inset-0 rounded-full bg-green-400 animate-ping opacity-20"></span>
+        
+        {/* تلميحة عند التمرير */}
+        <span className="absolute left-full ml-3 top-1/2 -translate-y-1/2 bg-slate-900 text-white text-sm px-3 py-2 rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+          تواصل معنا
+        </span>
+      </motion.button>
 
       {showCart && (
         <CartModal
@@ -499,7 +531,7 @@ const App = () => {
       <Route path="/brand/:brandId/model/:modelId/product/:productId" element={<MainApp />} />
       <Route path="/brand/:brandId/product/:productId" element={<MainApp />} />
       <Route path="/product/:productId" element={<MainApp />} />
-       <Route path="/admin" element={<AdminPanel />} />
+      <Route path="/admin" element={<AdminPanel />} />
     </Routes>
   );
 };

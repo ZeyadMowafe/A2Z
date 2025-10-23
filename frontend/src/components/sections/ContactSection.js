@@ -89,7 +89,7 @@ const ContactSection = ({ contactRef }) => (
               <h3 className="text-white text-xl font-light tracking-wider mb-4">LOCATION</h3>
               <div className="h-px w-12 bg-gray-800 group-hover:bg-blue-500 transition-colors duration-500 mb-6"></div>
             </div>
-            <p className="text-gray-400 group-hover:text-white transition-colors duration-500 text-lg mb-2">Cairo, Egypt</p>
+            <p className="text-gray-400 group-hover:text-white transition-colors duration-500 text-lg mb-2">El Mahala el Kobra, Egypt</p>
             <p className="text-gray-600 text-sm tracking-wide">Visit Our Showroom</p>
           </div>
         </div>

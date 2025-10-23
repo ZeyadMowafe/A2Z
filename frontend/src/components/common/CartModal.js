@@ -337,7 +337,7 @@ const PaymentInstructions = ({ depositAmount }) => (
           Transfer <span className="font-semibold text-gray-900">EGP {depositAmount}</span> via payment method to:
         </p>
         <div className="bg-gray-900 text-white p-3 sm:p-4 text-center">
-          <span className="text-lg sm:text-xl font-light tracking-wide">+20 123 456 7890</span>
+          <span className="text-lg sm:text-xl font-light tracking-wide">+20 01119890713</span>
         </div>
       </div>
     </div>
@@ -364,13 +364,13 @@ const ConfirmationInstructions = () => (
           <div className="bg-gray-50 border border-gray-300 p-2.5 sm:p-3 hover:bg-gray-100 transition-all duration-300 cursor-pointer">
             <div className="flex items-center justify-center gap-1.5 sm:gap-2">
               <MessageCircle className="w-4 h-4 sm:w-5 sm:h-5 text-gray-700" strokeWidth={1.5} />
-              <span className="font-light text-gray-900 text-sm sm:text-base">Telegram</span>
+              <span className="font-light text-gray-900 text-sm sm:text-base">Instagram</span>
             </div>
           </div>
         </div>
         
         <div className="bg-gray-100 p-3 sm:p-4 text-center border border-gray-300">
-          <span className="text-base sm:text-lg font-light text-gray-900 tracking-wide">+20 123 456 7890</span>
+          <span className="text-base sm:text-lg font-light text-gray-900 tracking-wide">+20 01119890713</span>
         </div>
       </div>
     </div>
