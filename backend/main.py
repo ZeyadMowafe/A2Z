@@ -1150,13 +1150,12 @@ async def root():
     }
 
 # تقديم ملفات الـ frontend (React)
-app.mount("/static", StaticFiles(directory="backend/build/static"), name="static")
+app.mount("/static", StaticFiles(directory="build/static"), name="static")
 
 # أي Route مش API => رجّع index.html
 @app.get("/{full_path:path}")
 async def serve_react_app(full_path: str):
-    file_path = os.path.join("backend", "build", "index.html")
-    return FileResponse(file_path)
+    return FileResponse("build/index.html")
 
 
 if __name__ == "__main__":
