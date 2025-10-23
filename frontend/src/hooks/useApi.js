@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 
-const API_URL = 'http://localhost:8000/api';
+const API_URL = '/api';
 const apiCache = {};
 const CACHE_DURATION = 5 * 60 * 1000; // 5 دقائق
 
