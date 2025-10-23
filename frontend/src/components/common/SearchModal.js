@@ -24,7 +24,7 @@ const SearchModal = ({
   // Load popular searches from API
   const loadPopularSearches = async () => {
     try {
-      const response = await fetch('http://localhost:8000/api/search/popular');
+      const response = await fetch('/api/search/popular');
       const data = await response.json();
       setPopularSearches(data);
     } catch (error) {
@@ -42,7 +42,7 @@ const SearchModal = ({
     }
 
     try {
-      const response = await fetch(`http://localhost:8000/api/search/suggestions?q=${encodeURIComponent(query)}`);
+      const response = await fetch(`/api/search/suggestions?q=${encodeURIComponent(query)}`);
       const data = await response.json();
       setSuggestions(data);
     } catch (error) {
@@ -60,7 +60,7 @@ const SearchModal = ({
 
     setLoading(true);
     try {
-      const url = `http://localhost:8000/api/products?search=${encodeURIComponent(query)}&sort_by=${sort}`;
+      const url = `/api/products?search=${encodeURIComponent(query)}&sort_by=${sort}`;
       const response = await fetch(url);
       const data = await response.json();
       setSearchResults(data);
