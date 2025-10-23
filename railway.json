@@ -1,10 +1,4 @@
-<invoke name="artifacts">
-<parameter name="command">create</parameter>
-<parameter name="type">application/vnd.ant.code</parameter>
-<parameter name="language">json</parameter>
-<parameter name="title">railway.json</parameter>
-<parameter name="id">railway_config</parameter>
-<parameter name="content">{
+{
   "$schema": "https://railway.app/railway.schema.json",
   "build": {
     "builder": "NIXPACKS"
@@ -15,4 +9,3 @@
     "restartPolicyMaxRetries": 10
   }
 }
-</parameter>
