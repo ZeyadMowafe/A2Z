@@ -8,6 +8,8 @@ from pydantic import BaseModel, EmailStr, Field
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timedelta
 from supabase import create_client, Client
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 import os
 from dotenv import load_dotenv
 import uuid
@@ -1146,6 +1148,16 @@ async def root():
         "status": "running",
         "environment": settings.ENVIRONMENT
     }
+
+# تقديم ملفات الـ frontend (React)
+app.mount("/static", StaticFiles(directory="backend/build/static"), name="static")
+
+# أي Route مش API => رجّع index.html
+@app.get("/{full_path:path}")
+async def serve_react_app(full_path: str):
+    file_path = os.path.join("backend", "build", "index.html")
+    return FileResponse(file_path)
+
 
 if __name__ == "__main__":
     import uvicorn
