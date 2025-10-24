@@ -1,3 +1,4 @@
+// hooks/useLazyLoad.js
 import { useEffect, useRef, useState } from 'react';
 
 const useLazyLoad = (options = {}) => {
@@ -15,7 +16,7 @@ const useLazyLoad = (options = {}) => {
     const element = elementRef.current;
     if (!element) return;
 
-    // لو حملت مرة واحدة وخلاص
+    
     if (triggerOnce && hasLoaded) return;
 
     const observer = new IntersectionObserver(
@@ -48,3 +49,4 @@ const useLazyLoad = (options = {}) => {
   return [elementRef, isVisible, hasLoaded];
 };
 
+export default useLazyLoad;
