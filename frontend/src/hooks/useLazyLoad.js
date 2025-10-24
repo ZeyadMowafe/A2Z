@@ -1,4 +1,7 @@
+<<<<<<< HEAD
 
+=======
+>>>>>>> c9be832 (update pic)
 // hooks/useLazyLoad.js
 import { useEffect, useRef, useState } from 'react';
 
@@ -50,4 +53,8 @@ const useLazyLoad = (options = {}) => {
   return [elementRef, isVisible, hasLoaded];
 };
 
+<<<<<<< HEAD
 export default useLazyLoad;
+=======
+export default useLazyLoad;
+>>>>>>> c9be832 (update pic)
