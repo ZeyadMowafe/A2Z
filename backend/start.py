@@ -10,6 +10,6 @@ if __name__ == "__main__":
         host="0.0.0.0",
         port=port,
         log_level="info",
-        timeout_keep_alive=75,  # إضافة timeout أطول
+        timeout_keep_alive=75,
         access_log=True
     )
