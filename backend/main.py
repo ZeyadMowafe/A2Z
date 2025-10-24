@@ -1146,25 +1146,48 @@ async def root():
         "message": "Auto Parts API",
         "version": "1.0.0",
         "status": "running",
-        "environment": settings.ENVIRONMENT
+        "environment": settings.ENVIRONMENT,
+        "docs": "/docs" if settings.ENVIRONMENT == "development" else None
     }
 
-# تقديم ملفات الـ frontend (React)
-app.mount("/static", StaticFiles(directory="build/static"), name="static")
+# Static files للـ React
+try:
+    app.mount("/static", StaticFiles(directory="build/static"), name="static")
+    logger.info("✅ Static files mounted successfully")
+except Exception as e:
+    logger.warning(f"⚠️ Static files not found: {e}")
 
-# أي Route مش API => رجّع index.html
+# Serve React app - يجب أن يكون آخر حاجة
 @app.get("/{full_path:path}")
-async def serve_react_app(full_path: str):
-    return FileResponse("build/index.html")
+async def serve_react_app(full_path: str, request: Request):
+    """
+    Serve React app for client-side routing.
+    IMPORTANT: This catches ALL routes, so API routes must be defined ABOVE.
+    """
+    
+    # ❌ استثني الـ API routes - مهم جداً!
+    api_prefixes = ["api", "health", "docs", "redoc", "openapi.json"]
+    
+    for prefix in api_prefixes:
+        if full_path.startswith(prefix):
+            # لو مسار API، ارجع 404
+            raise HTTPException(status_code=404, detail="API endpoint not found")
+    
+    # ✅ لو مش API route، ارجع React app
+    try:
+        return FileResponse("build/index.html")
+    except Exception as e:
+        logger.error(f"Failed to serve React app: {e}")
+        raise HTTPException(status_code=404, detail="Frontend not found")
 
 
 if __name__ == "__main__":
     import uvicorn
+    port = int(os.getenv("PORT", 8000))
+    logger.info(f"🚀 Starting server on port {port}")
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=int(os.getenv("PORT", 8000)),
-        reload=settings.ENVIRONMENT == "development",
-        workers=int(os.getenv("WORKERS", 1)),
+        port=port,
         log_level="info"
     )
