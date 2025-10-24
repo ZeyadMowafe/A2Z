@@ -50,9 +50,9 @@ const ModelsHeader = ({ selectedBrand }) => (
         {/* Badge Container */}
         <div className="relative flex items-center gap-4 bg-slate-900/80 backdrop-blur-xl border-2 border-slate-800 px-6 py-4 shadow-2xl">
           {/* Icon */}
-          // <div className={`w-12 h-12 bg-gradient-to-br ${selectedBrand.color} flex items-center justify-center shadow-lg`}>
-          //   <Car className="w-6 h-6 text-white" />
-          // </div>
+          <div className={`w-12 h-12 bg-gradient-to-br ${selectedBrand.color} flex items-center justify-center shadow-lg`}>
+            <Car className="w-6 h-6 text-white" />
+          </div>
           
           {/* Text */}
           <span className="text-sm font-bold text-white uppercase tracking-[0.2em]">{selectedBrand.name}</span>
