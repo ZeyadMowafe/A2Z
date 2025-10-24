@@ -1139,52 +1139,43 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
         logger.error(f"Get current user failed: {str(e)}")
         raise HTTPException(status_code=401, detail="Authentication failed")
 
-# Root endpoint
-@app.get("/")
-async def root():
-    return {
-        "message": "Auto Parts API",
-        "version": "1.0.0",
-        "status": "running",
-        "environment": settings.ENVIRONMENT,
-        "docs": "/docs" if settings.ENVIRONMENT == "development" else None
-    }
 
-# Static files للـ React
+# ========================================
+# FRONTEND SERVING (React)
+# ========================================
+
+# Mount static files first
 try:
     app.mount("/static", StaticFiles(directory="build/static"), name="static")
-    logger.info("✅ Static files mounted successfully")
+    logger.info("✅ Static files mounted from build/static")
 except Exception as e:
-    logger.warning(f"⚠️ Static files not found: {e}")
+    logger.warning(f"⚠️ Could not mount static files: {e}")
 
-# Serve React app - يجب أن يكون آخر حاجة
-@app.get("/{full_path:path}")
-async def serve_react_app(full_path: str, request: Request):
+# Serve React App on root
+@app.get("/", response_class=FileResponse, include_in_schema=False)
+async def serve_root():
+    """Serve React app index.html"""
+    return FileResponse("build/index.html")
+
+# Catch-all route for React Router (client-side routing)
+@app.get("/{full_path:path}", response_class=FileResponse, include_in_schema=False)
+async def serve_react_app(full_path: str):
     """
-    Serve React app for client-side routing.
-    IMPORTANT: This catches ALL routes, so API routes must be defined ABOVE.
+    Serve React app for all non-API routes.
+    This enables client-side routing.
     """
+    # Exclude API routes from catch-all
+    if full_path.startswith(("api/", "api", "health", "docs", "redoc", "openapi.json")):
+        raise HTTPException(status_code=404, detail="API endpoint not found")
     
-    # ❌ استثني الـ API routes - مهم جداً!
-    api_prefixes = ["api", "health", "docs", "redoc", "openapi.json"]
-    
-    for prefix in api_prefixes:
-        if full_path.startswith(prefix):
-            # لو مسار API، ارجع 404
-            raise HTTPException(status_code=404, detail="API endpoint not found")
-    
-    # ✅ لو مش API route، ارجع React app
-    try:
-        return FileResponse("build/index.html")
-    except Exception as e:
-        logger.error(f"Failed to serve React app: {e}")
-        raise HTTPException(status_code=404, detail="Frontend not found")
+    # Serve React app
+    return FileResponse("build/index.html")
 
 
 if __name__ == "__main__":
     import uvicorn
     port = int(os.getenv("PORT", 8000))
-    logger.info(f"🚀 Starting server on port {port}")
+    logger.info(f"🚀 Starting Auto Parts API on port {port}")
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
