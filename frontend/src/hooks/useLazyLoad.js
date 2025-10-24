@@ -1,8 +1,3 @@
-<<<<<<< HEAD
-
-=======
->>>>>>> c9be832 (update pic)
-// hooks/useLazyLoad.js
 import { useEffect, useRef, useState } from 'react';
 
 const useLazyLoad = (options = {}) => {
