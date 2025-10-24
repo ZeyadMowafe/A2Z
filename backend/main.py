@@ -1146,7 +1146,8 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
 
 # Mount static files first
 try:
-    app.mount("/static", StaticFiles(directory="build/static"), name="static")
+    app.mount("/", StaticFiles(directory="build", html=True), name="static")
+
     logger.info("✅ Static files mounted from build/static")
 except Exception as e:
     logger.warning(f"⚠️ Could not mount static files: {e}")
