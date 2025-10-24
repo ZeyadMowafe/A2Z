@@ -158,12 +158,12 @@ const HeroContent = ({ onScrollToBrands, brandsCount }) => (
       </div>
 
       {/* Action Buttons */}
-      <div className="animate-fade-in-up" style={{ animationDelay: '0.7s' }}>
+      <div className="animate-fade-in-up mb-12 sm:mb-0" style={{ animationDelay: '0.7s' }}>
         <ActionButtons onScrollToBrands={onScrollToBrands} />
       </div>
       
       {/* Stats */}
-      <div className="animate-fade-in-up overflow-x-auto" style={{ animationDelay: '0.8s' }}>
+      <div className="hidden sm:block animate-fade-in-up overflow-x-auto" style={{ animationDelay: '0.8s' }}>
         <StatsGrid brandsCount={brandsCount} />
       </div>
     </div>
