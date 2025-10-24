@@ -2,7 +2,7 @@ import React from 'react';
 import { Car, Shield, Zap, CheckCircle, MessageCircle, ArrowRight, ChevronDown } from 'lucide-react';
 
 const HeroSection = ({ onScrollToBrands, brandsCount }) => (
-  <section className="relative min-h-screen flex items-center overflow-x-hidden bg-slate-900">
+  <section className="relative min-h-screen flex items-center overflow-hidden bg-slate-900">
     {/* Premium Background */}
     <div className="absolute inset-0">
       <img 
@@ -42,7 +42,7 @@ const HeroSection = ({ onScrollToBrands, brandsCount }) => (
       <div className="absolute top-1/2 right-1/4 w-1.5 h-1.5 bg-indigo-400 rounded-full animate-float" style={{ animationDelay: '1.5s', animationDuration: '9s' }}></div>
     </div>
 
-    <div className="container mx-auto px-4 sm:px-6 md:px-8 lg:px-12 relative z-10 pt-24 sm:pt-32 pb-20 overflow-x-hidden">
+    <div className="container mx-auto px-6 md:px-8 lg:px-12 relative z-10 pt-24 md:pt-32 pb-16 md:pb-20">
       <div className="max-w-7xl mx-auto">
         <HeroContent onScrollToBrands={onScrollToBrands} brandsCount={brandsCount} />
       </div>
@@ -105,52 +105,52 @@ const HeroSection = ({ onScrollToBrands, brandsCount }) => (
 
 const HeroContent = ({ onScrollToBrands, brandsCount }) => (
   <div className="grid lg:grid-cols-2 gap-12 lg:gap-24 items-center">
-    <div className="max-w-full overflow-x-hidden">
+    <div>
       {/* Premium Badge */}
-      <div className="inline-flex items-center gap-2 sm:gap-4 mb-8 sm:mb-12 group animate-fade-in-up">
-        <div className="h-[1px] w-6 sm:w-12 bg-gradient-to-r from-transparent to-slate-600 group-hover:to-blue-400 transition-colors duration-700"></div>
-        <div className="flex items-center gap-2 sm:gap-3 border border-slate-700 group-hover:border-blue-900 px-3 sm:px-5 py-2 sm:py-2.5 transition-all duration-700">
-          <Shield className="w-3 h-3 sm:w-4 sm:h-4 text-blue-400" />
-          <span className="text-slate-400 text-[10px] sm:text-xs font-semibold tracking-[0.2em] sm:tracking-[0.3em] uppercase">Premium Quality</span>
+      <div className="inline-flex items-center gap-3 md:gap-4 mb-8 md:mb-12 group animate-fade-in-up">
+        <div className="h-[1px] w-8 md:w-12 bg-gradient-to-r from-transparent to-slate-600 group-hover:to-blue-400 transition-colors duration-700"></div>
+        <div className="flex items-center gap-2 md:gap-3 border border-slate-700 group-hover:border-blue-900 px-3 md:px-5 py-2 md:py-2.5 transition-all duration-700">
+          <Shield className="w-3 h-3 md:w-4 md:h-4 text-blue-400" />
+          <span className="text-slate-400 text-[10px] md:text-xs font-semibold tracking-[0.2em] md:tracking-[0.3em] uppercase">Premium Quality</span>
         </div>
-        <div className="h-[1px] w-6 sm:w-12 bg-gradient-to-l from-transparent to-slate-600 group-hover:to-blue-400 transition-colors duration-700"></div>
+        <div className="h-[1px] w-8 md:w-12 bg-gradient-to-l from-transparent to-slate-600 group-hover:to-blue-400 transition-colors duration-700"></div>
       </div>
 
       {/* Main Headline */}
-      <div className="mb-8 sm:mb-10">
-        <h1 className="text-5xl sm:text-7xl md:text-8xl lg:text-9xl font-thin text-white mb-3 sm:mb-4 tracking-tighter leading-[0.85] animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
+      <div className="mb-6 md:mb-10">
+        <h1 className="text-5xl sm:text-7xl lg:text-9xl font-thin text-white mb-3 md:mb-4 tracking-tighter leading-[0.85] animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
           DRIVE
         </h1>
-        <h2 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-light mb-3 sm:mb-4 tracking-wide animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
+        <h2 className="text-3xl sm:text-5xl lg:text-7xl font-light mb-3 md:mb-4 tracking-wide animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
           <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-blue-300 to-indigo-400">
             EXCELLENCE
           </span>
         </h2>
-        <div className="flex items-center gap-3 sm:gap-4 mt-4 sm:mt-6 animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
-          <div className="h-[2px] w-12 sm:w-20 bg-gradient-to-r from-blue-400 to-transparent"></div>
-          <div className="w-2 h-2 border border-blue-400 rotate-45"></div>
+        <div className="flex items-center gap-3 md:gap-4 mt-4 md:mt-6 animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
+          <div className="h-[2px] w-12 md:w-20 bg-gradient-to-r from-blue-400 to-transparent"></div>
+          <div className="w-1.5 h-1.5 md:w-2 md:h-2 border border-blue-400 rotate-45"></div>
         </div>
       </div>
 
       {/* Description */}
-      <p className="text-slate-400 text-base sm:text-lg lg:text-xl font-light leading-relaxed max-w-xl mb-8 sm:mb-12 animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
+      <p className="text-slate-400 text-base md:text-lg lg:text-xl font-light leading-relaxed max-w-xl mb-8 md:mb-12 animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
         Original automotive parts from world-class manufacturers. Uncompromising quality, precision engineering, and certified authenticity.
       </p>
 
       {/* Premium Features */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 mb-8 sm:mb-12">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6 mb-8 md:mb-12">
         {[
           { icon: CheckCircle, title: '100% Authentic', subtitle: 'Certified original parts', delay: '0.5s' },
           { icon: Zap, title: 'Express Delivery', subtitle: 'Nationwide shipping', delay: '0.6s' }
         ].map(({ icon: Icon, title, subtitle, delay }) => (
           <div key={title} className="group animate-fade-in-up" style={{ animationDelay: delay }}>
-            <div className="flex items-start gap-3 sm:gap-4">
-              <div className="w-12 h-12 sm:w-14 sm:h-14 border border-slate-700 group-hover:border-blue-500 flex items-center justify-center transition-all duration-500 group-hover:rotate-90 flex-shrink-0">
-                <Icon className="w-5 h-5 sm:w-6 sm:h-6 text-slate-600 group-hover:text-blue-400 transition-all duration-500 group-hover:-rotate-90" />
+            <div className="flex items-start gap-3 md:gap-4">
+              <div className="w-10 h-10 md:w-14 md:h-14 border border-slate-700 group-hover:border-blue-500 flex items-center justify-center transition-all duration-500 group-hover:rotate-90 flex-shrink-0">
+                <Icon className="w-5 h-5 md:w-6 md:h-6 text-slate-600 group-hover:text-blue-400 transition-all duration-500 group-hover:-rotate-90" />
               </div>
               <div>
-                <div className="text-white font-light text-base sm:text-lg mb-1">{title}</div>
-                <div className="text-slate-500 text-xs sm:text-sm font-light">{subtitle}</div>
+                <div className="text-white font-light text-base md:text-lg mb-1">{title}</div>
+                <div className="text-slate-500 text-xs md:text-sm font-light">{subtitle}</div>
               </div>
             </div>
           </div>
@@ -158,12 +158,12 @@ const HeroContent = ({ onScrollToBrands, brandsCount }) => (
       </div>
 
       {/* Action Buttons */}
-      <div className="animate-fade-in-up mb-12 sm:mb-0" style={{ animationDelay: '0.7s' }}>
+      <div className="animate-fade-in-up" style={{ animationDelay: '0.7s' }}>
         <ActionButtons onScrollToBrands={onScrollToBrands} />
       </div>
       
       {/* Stats */}
-      <div className="hidden sm:block animate-fade-in-up overflow-x-auto" style={{ animationDelay: '0.8s' }}>
+      <div className="animate-fade-in-up" style={{ animationDelay: '0.8s' }}>
         <StatsGrid brandsCount={brandsCount} />
       </div>
     </div>
@@ -302,14 +302,14 @@ const HeroContent = ({ onScrollToBrands, brandsCount }) => (
 );
 
 const ActionButtons = ({ onScrollToBrands }) => (
-  <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-12 sm:mb-16">
+  <div className="flex flex-col sm:flex-row gap-3 md:gap-4 mb-10 md:mb-16">
     <button
       onClick={onScrollToBrands}
-      className="group relative bg-white hover:bg-slate-100 text-black px-6 sm:px-10 py-4 sm:py-5 font-light text-base sm:text-lg transition-all duration-500 overflow-hidden"
+      className="group relative bg-white hover:bg-slate-100 text-black px-6 md:px-10 py-4 md:py-5 font-light text-base md:text-lg transition-all duration-500 overflow-hidden"
     >
-      <span className="relative z-10 flex items-center justify-center gap-2 sm:gap-3 tracking-wide">
+      <span className="relative z-10 flex items-center justify-center gap-2 md:gap-3 tracking-wide">
         EXPLORE PARTS
-        <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 group-hover:translate-x-2 transition-transform duration-500" />
+        <ArrowRight className="w-4 h-4 md:w-5 md:h-5 group-hover:translate-x-2 transition-transform duration-500" />
       </span>
       <div className="absolute top-0 left-0 w-0 h-[2px] bg-blue-500 group-hover:w-full transition-all duration-700"></div>
     </button>
@@ -318,10 +318,10 @@ const ActionButtons = ({ onScrollToBrands }) => (
       href="https://wa.me/201119890713" 
       target="_blank" 
       rel="noopener noreferrer"
-      className="group relative border border-slate-600 hover:border-slate-500 text-white px-6 sm:px-10 py-4 sm:py-5 font-light text-base sm:text-lg transition-all duration-500 overflow-hidden"
+      className="group relative border border-slate-600 hover:border-slate-500 text-white px-6 md:px-10 py-4 md:py-5 font-light text-base md:text-lg transition-all duration-500 overflow-hidden"
     >
-      <span className="relative z-10 flex items-center justify-center gap-2 sm:gap-3 tracking-wide">
-        <svg className="w-6 h-6 sm:w-8 sm:h-8" viewBox="0 0 24 24" fill="currentColor">
+      <span className="relative z-10 flex items-center justify-center gap-2 md:gap-3 tracking-wide">
+        <svg className="w-6 h-6 md:w-8 md:h-8" viewBox="0 0 24 24" fill="currentColor">
           <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
         </svg>
         CONTACT US
@@ -339,17 +339,17 @@ const StatsGrid = ({ brandsCount }) => {
   ];
 
   return (
-    <div className="flex items-center gap-6 sm:gap-8 md:gap-12">
+    <div className="flex items-center gap-6 md:gap-12 overflow-x-auto pb-2">
       {stats.map((stat, index) => (
         <React.Fragment key={stat.label}>
-          <div className="group">
-            <div className="text-2xl sm:text-3xl md:text-4xl font-thin text-white mb-1 sm:mb-2 group-hover:text-blue-400 transition-colors duration-500 tracking-tight">
+          <div className="group flex-shrink-0">
+            <div className="text-2xl md:text-4xl font-thin text-white mb-1 md:mb-2 group-hover:text-blue-400 transition-colors duration-500 tracking-tight">
               {stat.value}
             </div>
-            <div className="h-[1px] w-8 sm:w-12 bg-slate-700 group-hover:w-12 sm:group-hover:w-16 group-hover:bg-blue-500 transition-all duration-500 mb-1 sm:mb-2"></div>
-            <div className="text-slate-500 text-[10px] sm:text-xs md:text-sm font-light tracking-wider uppercase">{stat.label}</div>
+            <div className="h-[1px] w-8 md:w-12 bg-slate-700 group-hover:w-12 md:group-hover:w-16 group-hover:bg-blue-500 transition-all duration-500 mb-1 md:mb-2"></div>
+            <div className="text-slate-500 text-xs md:text-sm font-light tracking-wider uppercase whitespace-nowrap">{stat.label}</div>
           </div>
-          {index < stats.length - 1 && <div className="w-[1px] h-12 sm:h-16 bg-slate-700"></div>}
+          {index < stats.length - 1 && <div className="w-[1px] h-12 md:h-16 bg-slate-700 flex-shrink-0"></div>}
         </React.Fragment>
       ))}
     </div>
@@ -357,11 +357,11 @@ const StatsGrid = ({ brandsCount }) => {
 };
 
 const ScrollIndicator = () => (
-  <div className="absolute bottom-8 sm:bottom-12 left-1/2 transform -translate-x-1/2 z-20 animate-fade-in-up" style={{ animationDelay: '1s' }}>
-    <div className="flex flex-col items-center gap-2 sm:gap-3 group cursor-pointer">
-      <span className="text-[10px] sm:text-xs text-slate-500 font-light tracking-[0.2em] sm:tracking-[0.3em] uppercase">Scroll</span>
-      <div className="w-[1px] h-12 sm:h-16 bg-gradient-to-b from-slate-600 to-transparent group-hover:from-blue-500 transition-colors duration-700"></div>
-      <ChevronDown className="w-4 h-4 sm:w-5 sm:h-5 text-slate-600 group-hover:text-blue-400 animate-bounce transition-colors duration-700" />
+  <div className="absolute bottom-4 md:bottom-6 left-1/2 transform -translate-x-1/2 z-20 animate-fade-in-up" style={{ animationDelay: '1s' }}>
+    <div className="flex flex-col items-center gap-2 md:gap-3 group cursor-pointer">
+      <span className="text-[10px] md:text-xs text-slate-500 font-light tracking-[0.2em] md:tracking-[0.3em] uppercase">Scroll</span>
+      <div className="w-[1px] h-12 md:h-16 bg-gradient-to-b from-slate-600 to-transparent group-hover:from-blue-500 transition-colors duration-700"></div>
+      <ChevronDown className="w-4 h-4 md:w-5 md:h-5 text-slate-600 group-hover:text-blue-400 animate-bounce transition-colors duration-700" />
     </div>
   </div>
 );
