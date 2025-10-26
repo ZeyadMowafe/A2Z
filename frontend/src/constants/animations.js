@@ -1,25 +1,11 @@
-// pageTransitions.js
-
 export const pageVariants = {
-  initial: {
-    opacity: 0,
-    y: 20, // بدل x خليها y بسيطة لتدي إحساس ارتفاع ناعم
-    scale: 0.98,
-  },
-  in: {
-    opacity: 1,
-    y: 0,
-    scale: 1,
-  },
-  out: {
-    opacity: 0,
-    y: -15,
-    scale: 1.02,
-  },
+  initial: { opacity: 0, x: -15 },
+  in: { opacity: 1, x: 0 },
+  out: { opacity: 0, x: 15 },
 };
 
 export const pageTransition = {
   type: "tween",
-  ease: "easeInOut",
-  duration: 0.2,
+  ease: [0.25, 0.1, 0.25, 1],  // cubic-bezier فيها انسيابية طبيعية
+  duration: 0.4,               // مش بطيئة ولا سريعة
 };
