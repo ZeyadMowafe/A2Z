@@ -5,7 +5,7 @@ import { MessageCircle } from 'lucide-react';
 import { pageVariants, pageTransition } from './constants/animations';
 import useApi from './hooks/useApi';
 import useCart from './hooks/useCart';
-import useLazyLoad from './hooks/useLazyLoad';
+import useLazyLoad from './hooks/useLazyLoad'; // إضافة الـ hook
 import Header from './components/common/Header';
 import Footer from './components/common/Footer';
 import CartModal from './components/common/CartModal';
@@ -26,7 +26,7 @@ const cache = {
   data: {},
   timestamps: {},
   
-  set(key, value, ttl = 300000) {
+  set(key, value, ttl = 300000) { // 5 minutes default
     this.data[key] = value;
     this.timestamps[key] = Date.now() + ttl;
   },
@@ -50,7 +50,7 @@ const cache = {
   }
 };
 
-// Lazy Loaded Components
+// Lazy Loaded HomeView component
 const LazyHomeView = ({ brands, products, brandsRef, onBrandClick, onScrollToBrands }) => {
   const [heroRef, heroVisible] = useLazyLoad({ threshold: 0.1 });
   const [brandsRefLazy, brandsVisible] = useLazyLoad({ threshold: 0.1 });
@@ -77,6 +77,7 @@ const LazyHomeView = ({ brands, products, brandsRef, onBrandClick, onScrollToBra
   );
 };
 
+// Lazy Loaded ModelsView component
 const LazyModelsView = ({ selectedBrand, models, loading, onModelClick }) => {
   const [modelsRef, modelsVisible] = useLazyLoad({ threshold: 0.1 });
 
@@ -94,6 +95,7 @@ const LazyModelsView = ({ selectedBrand, models, loading, onModelClick }) => {
   );
 };
 
+// Lazy Loaded PartsView component
 const LazyPartsView = ({ 
   selectedBrand, 
   selectedModel, 
@@ -124,6 +126,7 @@ const LazyPartsView = ({
   );
 };
 
+// Lazy Loaded ProductDetailsView component
 const LazyProductDetailsView = ({ product, loading, onAddToCart, onOpenCart, onBack }) => {
   const [productRef, productVisible] = useLazyLoad({ threshold: 0.1 });
 
@@ -142,6 +145,7 @@ const LazyProductDetailsView = ({ product, loading, onAddToCart, onOpenCart, onB
   );
 };
 
+// Lazy Loaded AboutSection component
 const LazyAboutSection = ({ aboutRef }) => {
   const [aboutLazyRef, aboutVisible] = useLazyLoad({ threshold: 0.1 });
 
@@ -154,6 +158,7 @@ const LazyAboutSection = ({ aboutRef }) => {
   );
 };
 
+// Lazy Loaded ContactSection component
 const LazyContactSection = ({ contactRef }) => {
   const [contactLazyRef, contactVisible] = useLazyLoad({ threshold: 0.1 });
 
@@ -203,6 +208,7 @@ const MainApp = () => {
   const { fetchData } = useApi();
   const cart = useCart();
 
+  // Cached fetch function
   const fetchWithCache = useCallback(async (url, cacheKey, ttl = 300000) => {
     const cached = cache.get(cacheKey);
     if (cached) {
@@ -216,29 +222,32 @@ const MainApp = () => {
     return data;
   }, [fetchData]);
 
+  // Fetch brands with cache
   const fetchBrands = useCallback(async () => {
     try {
-      const data = await fetchWithCache('/brands', 'brands', 600000);
+      const data = await fetchWithCache('/brands', 'brands', 600000); // 10 minutes
       setBrands(data);
     } catch (error) {
       console.error('Error fetching brands:', error);
     }
   }, [fetchWithCache]);
 
+  // Fetch categories with cache
   const fetchCategories = useCallback(async () => {
     try {
-      const data = await fetchWithCache('/categories', 'categories', 600000);
+      const data = await fetchWithCache('/categories', 'categories', 600000); // 10 minutes
       setCategories(data);
     } catch (error) {
       console.error('Error fetching categories:', error);
     }
   }, [fetchWithCache]);
 
+  // Fetch models for brand with cache
   const fetchModelsForBrand = useCallback(async (brandId) => {
     setLoading(true);
     try {
       const cacheKey = `models_${brandId}`;
-      const data = await fetchWithCache(`/brands/${brandId}/models`, cacheKey, 300000);
+      const data = await fetchWithCache(`/brands/${brandId}/models`, cacheKey, 300000); // 5 minutes
       setModels(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error fetching models:', error);
@@ -248,6 +257,7 @@ const MainApp = () => {
     }
   }, [fetchWithCache]);
 
+  // Fetch products with cache
   const fetchProducts = useCallback(async () => {
     setLoading(true);
     try {
@@ -267,7 +277,7 @@ const MainApp = () => {
       }
       
       const cacheKey = `products_${params.join('_')}`;
-      const data = await fetchWithCache(url, cacheKey, 180000);
+      const data = await fetchWithCache(url, cacheKey, 180000); // 3 minutes
       setProducts(data);
     } catch (error) {
       console.error('Error fetching products:', error);
@@ -277,11 +287,12 @@ const MainApp = () => {
     }
   }, [selectedBrand, selectedModel, fetchWithCache]);
 
+  // Fetch product details with cache
   const fetchProductDetails = useCallback(async (id) => {
     setLoading(true);
     try {
       const cacheKey = `product_${id}`;
-      const data = await fetchWithCache(`/products/${id}`, cacheKey, 300000);
+      const data = await fetchWithCache(`/products/${id}`, cacheKey, 300000); // 5 minutes
       setSelectedProduct(data);
     } catch (error) {
       console.error('Error fetching product details:', error);
@@ -371,7 +382,7 @@ const MainApp = () => {
       setLoading(true);
       try {
         const cacheKey = `search_${query}`;
-        const data = await fetchWithCache(`/products?search=${encodeURIComponent(query)}`, cacheKey, 120000);
+        const data = await fetchWithCache(`/products?search=${encodeURIComponent(query)}`, cacheKey, 120000); // 2 minutes
         setSearchResults(data);
       } catch (error) {
         console.error('Error searching products:', error);
@@ -501,7 +512,7 @@ const MainApp = () => {
 
       setShowCheckout(false);
       setOrderSuccess(true);
-      cart.clearCart(); // ✅ Fixed: Use clearCart
+      cart.setCart([]);
       setCustomerInfo({ name: '', email: '', phone: '', address: '' });
       
       setTimeout(() => {
@@ -522,6 +533,7 @@ const MainApp = () => {
     window.open(whatsappUrl, '_blank');
   }, []);
 
+  // Memoize products by category
   const productsByCategory = useMemo(() => {
     return categories.reduce((acc, category) => {
       acc[category.name] = products.filter(p => p.category_id === category.id);
@@ -666,39 +678,17 @@ const MainApp = () => {
   );
 };
 
-// ✅ Fixed: Admin route outside AnimatePresence but with its own animation
 const App = () => {
-  const location = useLocation();
-  const isAdminRoute = location.pathname === '/admin';
-
   return (
-    <AnimatePresence mode="wait">
-      <Routes location={location} key={location.pathname}>
-        {/* Main App Routes */}
-        <Route path="/" element={<MainApp />} />
-        <Route path="/brand/:brandId" element={<MainApp />} />
-        <Route path="/brand/:brandId/model/:modelId" element={<MainApp />} />
-        <Route path="/brand/:brandId/model/:modelId/product/:productId" element={<MainApp />} />
-        <Route path="/brand/:brandId/product/:productId" element={<MainApp />} />
-        <Route path="/product/:productId" element={<MainApp />} />
-        
-        {/* Admin Route with Animation */}
-        <Route 
-          path="/admin" 
-          element={
-            <motion.div
-              initial="initial"
-              animate="in"
-              exit="out"
-              variants={pageVariants}
-              transition={pageTransition}
-            >
-              <AdminPanel />
-            </motion.div>
-          } 
-        />
-      </Routes>
-    </AnimatePresence>
+    <Routes>
+      <Route path="/" element={<MainApp />} />
+      <Route path="/brand/:brandId" element={<MainApp />} />
+      <Route path="/brand/:brandId/model/:modelId" element={<MainApp />} />
+      <Route path="/brand/:brandId/model/:modelId/product/:productId" element={<MainApp />} />
+      <Route path="/brand/:brandId/product/:productId" element={<MainApp />} />
+      <Route path="/product/:productId" element={<MainApp />} />
+      <Route path="/admin" element={<AdminPanel />} />
+    </Routes>
   );
 };
 
