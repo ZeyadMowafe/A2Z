@@ -3,13 +3,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
 from pydantic import BaseModel, EmailStr, Field
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timedelta
 from supabase import create_client, Client
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from pathlib import Path
 import os
 from dotenv import load_dotenv
 import uuid
@@ -1141,61 +1141,61 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
 
 
 # ========================================
-# FRONTEND SERVING - CORRECT WAY
+# FRONTEND SERVING - RAILWAY FIXED
 # ========================================
 
-# 1. Mount static files FIRST (CSS, JS, Images)
-try:
-    app.mount("/static", StaticFiles(directory="build/static"), name="static")
-    logger.info("✅ Static files mounted: /static -> build/static")
-except Exception as e:
-    logger.warning(f"⚠️ Static files not found: {e}")
+# Check if build directory exists
+BUILD_DIR = Path("build")
 
-# 2. Serve other build assets (logo.png, favicon, etc.)
-try:
-    from starlette.staticfiles import StaticFiles
-    app.mount("/assets", StaticFiles(directory="build"), name="assets")
-    logger.info("✅ Assets mounted: /assets -> build")
-except Exception as e:
-    logger.warning(f"⚠️ Assets directory issue: {e}")
-
-# 3. Root route - Serve React index.html
-@app.get("/")
-async def serve_root():
-    """Serve React app on root"""
+if BUILD_DIR.exists() and BUILD_DIR.is_dir():
+    logger.info("✅ Build directory found - Serving frontend")
+    
+    # Mount static files (CSS, JS, images)
     try:
+        app.mount("/static", StaticFiles(directory="build/static"), name="static")
+        logger.info("✅ Static files mounted successfully")
+    except Exception as e:
+        logger.warning(f"⚠️ Could not mount static files: {e}")
+    
+    # Serve root - Homepage
+    @app.get("/", response_class=FileResponse)
+    async def serve_frontend_root():
+        """Serve React app homepage"""
         return FileResponse("build/index.html")
-    except FileNotFoundError:
+    
+    # Catch-all route for React Router - MUST BE LAST!
+    @app.get("/{full_path:path}", response_class=FileResponse)
+    async def serve_react_app(full_path: str):
+        """
+        Catch-all for React Router.
+        Handles client-side routing (e.g., /admin, /products/123)
+        """
+        # Explicitly exclude API routes
+        if full_path.startswith(("api/", "health", "docs", "redoc", "openapi.json")):
+            raise HTTPException(status_code=404, detail="API endpoint not found")
+        
+        # Try to serve static file if it exists (favicon.ico, robots.txt, etc.)
+        file_path = BUILD_DIR / full_path
+        if file_path.exists() and file_path.is_file():
+            return FileResponse(file_path)
+        
+        # Otherwise, serve React app (for client-side routes)
+        return FileResponse("build/index.html")
+
+else:
+    logger.warning("⚠️ Build directory not found!")
+    logger.warning("⚠️ Please build the frontend: cd frontend && npm run build")
+    
+    # Serve a simple message if no build exists
+    @app.get("/")
+    async def no_frontend():
         return JSONResponse(
             status_code=503,
-            content={"message": "Frontend not available"}
+            content={
+                "message": "Frontend not available",
+                "hint": "Run 'npm run build' in frontend folder"
+            }
         )
-
-# 4. Catch-all for React Router
-@app.get("/{full_path:path}")
-async def catch_all(full_path: str):
-    """
-    Serve React app for client-side routing.
-    Exclude API routes.
-    """
-    # Don't catch API routes
-    if full_path.startswith(("api", "health", "docs", "redoc", "openapi.json", "static", "assets")):
-        raise HTTPException(status_code=404, detail="Not found")
-    
-    # Check if it's a file request (has extension)
-    if "." in full_path.split("/")[-1]:
-        # Try to serve from build directory
-        file_path = f"build/{full_path}"
-        if os.path.exists(file_path):
-            return FileResponse(file_path)
-        else:
-            raise HTTPException(status_code=404, detail="File not found")
-    
-    # Otherwise serve React app (for routes like /admin, /brand/1, etc.)
-    try:
-        return FileResponse("build/index.html")
-    except FileNotFoundError:
-        raise HTTPException(status_code=404, detail="Frontend not available")
 
 
 if __name__ == "__main__":
