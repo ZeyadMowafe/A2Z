@@ -1144,61 +1144,70 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
 # FRONTEND SERVING - CORRECT WAY
 # ========================================
 
-# 1. Mount static files FIRST (CSS, JS, Images)
-# 1. Mount static files FIRST (CSS, JS, Images)
-try:
-    app.mount("/static", StaticFiles(directory="build/static"), name="static")
-    logger.info("✅ Static files mounted: /static -> build/static")
-except Exception as e:
-    logger.warning(f"⚠️ Static files not found: {e}")
+import pathlib
+BUILD_DIR = pathlib.Path(__file__).parent / "build"
+logger.info(f"📁 Build directory path: {BUILD_DIR}")
+logger.info(f"📁 Build directory exists: {BUILD_DIR.exists()}")
 
-# 2. Root route - Serve React index.html
-@app.get("/")
-async def serve_root():
-    """Serve React app on root"""
+if BUILD_DIR.exists():
     try:
-        return FileResponse("build/index.html")
-    except FileNotFoundError:
+        # 1. Mount static files
+        app.mount("/static", StaticFiles(directory=str(BUILD_DIR / "static")), name="static")
+        logger.info("✅ Static files mounted successfully")
+    except Exception as e:
+        logger.warning(f"⚠️ Could not mount static files: {e}")
+
+    # 2. Serve index.html on root
+    @app.get("/", include_in_schema=False)
+    async def serve_root():
+        """Serve React app on root"""
+        index_file = BUILD_DIR / "index.html"
+        if index_file.exists():
+            return FileResponse(str(index_file))
+        logger.error("❌ index.html not found!")
         return JSONResponse(
             status_code=503,
-            content={"message": "Frontend not available"}
+            content={"message": "Frontend not built", "build_dir": str(BUILD_DIR)}
         )
 
-@app.get("/{full_path:path}")
-async def catch_all(full_path: str, request: Request):
-    """
-    Serve React app for client-side routing with refresh support.
-    Returns index.html for all non-API, non-static routes.
-    """
-    # Don't catch API routes - return 404 for actual API errors
-    if full_path.startswith("api/"):
-        raise HTTPException(status_code=404, detail="API endpoint not found")
-    
-    # Don't catch these system routes
-    if full_path in ("health", "docs", "redoc", "openapi.json"):
-        raise HTTPException(status_code=404, detail="Not found")
-    
-    # Don't catch static files that are already mounted
-    if full_path.startswith(("static/", "assets/")):
-        raise HTTPException(status_code=404, detail="File not found")
-    
-    # Check if it's a direct file request (has extension like .png, .ico, .json)
-    if "." in full_path.split("/")[-1]:
-        # Try to serve from build directory
-        file_path = f"build/{full_path}"
-        if os.path.exists(file_path):
-            return FileResponse(file_path)
-        # If file not found, still try to serve index.html for SPA routes with dots
-        # (some apps use routes like /page.html for compatibility)
-    
-    # Serve React app for ALL other routes (including /admin, /brand/1, /products, etc.)
-    # This enables refresh to work on any page
-    try:
-        return FileResponse("build/index.html")
-    except FileNotFoundError:
+    # 3. Catch-all for SPA routing
+    @app.get("/{full_path:path}", include_in_schema=False)
+    async def catch_all(full_path: str):
+        """Serve React app for all routes (SPA)"""
+        
+        # Skip static files (already mounted)
+        if full_path.startswith("static/"):
+            raise HTTPException(status_code=404, detail="Static file not found")
+        
+        # Try to serve file if it has extension
+        if "." in full_path.split("/")[-1]:
+            file_path = BUILD_DIR / full_path
+            if file_path.exists() and file_path.is_file():
+                return FileResponse(str(file_path))
+        
+        # Serve index.html for all SPA routes
+        index_file = BUILD_DIR / "index.html"
+        if index_file.exists():
+            return FileResponse(str(index_file))
+        
+        logger.error(f"❌ Cannot serve {full_path}, index.html not found")
         return JSONResponse(
             status_code=503,
-            content={"message": "Frontend not built. Run: npm run build"}
+            content={"message": "Frontend not available", "path": full_path}
+        )
+
+else:
+    logger.error(f"❌ Build directory not found: {BUILD_DIR}")
+    
+    @app.get("/", include_in_schema=False)
+    async def no_frontend():
+        return JSONResponse(
+            status_code=503,
+            content={
+                "message": "Frontend not built",
+                "build_dir": str(BUILD_DIR),
+                "current_dir": str(pathlib.Path.cwd())
+            }
         )
 
 
@@ -1206,6 +1215,8 @@ if __name__ == "__main__":
     import uvicorn
     port = int(os.getenv("PORT", 8000))
     logger.info(f"🚀 Starting Auto Parts API on port {port}")
+    logger.info(f"📂 Working directory: {pathlib.Path.cwd()}")
+    logger.info(f"📂 Build directory: {BUILD_DIR}")
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
