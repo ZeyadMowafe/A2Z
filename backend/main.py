@@ -1164,26 +1164,42 @@ async def serve_root():
             content={"message": "Frontend not available"}
         )
 
-# 3. Catch-all for React Router - MUST BE LAST
-from pathlib import Path
-BUILD_DIR = Path(__file__).resolve().parent / "build"
-
 @app.get("/{full_path:path}")
-async def catch_all(full_path: str):
-    if full_path.startswith(("api", "health", "docs", "redoc", "openapi.json", "static", "assets")):
+async def catch_all(full_path: str, request: Request):
+    """
+    Serve React app for client-side routing with refresh support.
+    Returns index.html for all non-API, non-static routes.
+    """
+    # Don't catch API routes - return 404 for actual API errors
+    if full_path.startswith("api/"):
+        raise HTTPException(status_code=404, detail="API endpoint not found")
+    
+    # Don't catch these system routes
+    if full_path in ("health", "docs", "redoc", "openapi.json"):
         raise HTTPException(status_code=404, detail="Not found")
-
+    
+    # Don't catch static files that are already mounted
+    if full_path.startswith(("static/", "assets/")):
+        raise HTTPException(status_code=404, detail="File not found")
+    
+    # Check if it's a direct file request (has extension like .png, .ico, .json)
     if "." in full_path.split("/")[-1]:
-        file_path = BUILD_DIR / full_path
-        if file_path.exists():
+        # Try to serve from build directory
+        file_path = f"build/{full_path}"
+        if os.path.exists(file_path):
             return FileResponse(file_path)
-        else:
-            raise HTTPException(status_code=404, detail="File not found")
-
+        # If file not found, still try to serve index.html for SPA routes with dots
+        # (some apps use routes like /page.html for compatibility)
+    
+    # Serve React app for ALL other routes (including /admin, /brand/1, /products, etc.)
+    # This enables refresh to work on any page
     try:
-        return FileResponse(BUILD_DIR / "index.html")
+        return FileResponse("build/index.html")
     except FileNotFoundError:
-        raise HTTPException(status_code=404, detail="Frontend not available")
+        return JSONResponse(
+            status_code=503,
+            content={"message": "Frontend not built. Run: npm run build"}
+        )
 
 
 if __name__ == "__main__":
