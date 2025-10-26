@@ -1165,26 +1165,23 @@ async def serve_root():
         )
 
 # 3. Catch-all for React Router - MUST BE LAST
+from pathlib import Path
+BUILD_DIR = Path(__file__).resolve().parent / "build"
+
 @app.get("/{full_path:path}")
 async def catch_all(full_path: str):
-    """
-    Serve React app for ALL client-side routes.
-    Handles: /admin, /brand/1, /brand/1/model/2, etc.
-    """
-    # Exclude API routes
-    if full_path.startswith(("api/", "health", "docs", "redoc", "openapi.json", "static/")):
+    if full_path.startswith(("api", "health", "docs", "redoc", "openapi.json", "static", "assets")):
         raise HTTPException(status_code=404, detail="Not found")
-    
-    # Check if it's a file (has extension like .js, .css, .png)
+
     if "." in full_path.split("/")[-1]:
-        file_path = f"build/{full_path}"
-        if os.path.exists(file_path):
+        file_path = BUILD_DIR / full_path
+        if file_path.exists():
             return FileResponse(file_path)
-        # If file doesn't exist, might be React route, continue below
-    
-    # Serve React index.html for ALL other paths
+        else:
+            raise HTTPException(status_code=404, detail="File not found")
+
     try:
-        return FileResponse("build/index.html")
+        return FileResponse(BUILD_DIR / "index.html")
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail="Frontend not available")
 
