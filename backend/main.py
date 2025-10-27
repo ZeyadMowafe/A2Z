@@ -1144,82 +1144,33 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
 # FRONTEND SERVING - CORRECT WAY
 # ========================================
 
+# ========================================
+# FRONTEND SERVING
+# ========================================
 import pathlib
+
 BUILD_DIR = pathlib.Path(__file__).parent / "build"
-logger.info(f"📁 Build directory path: {BUILD_DIR}")
-logger.info(f"📁 Build directory exists: {BUILD_DIR.exists()}")
 
 if BUILD_DIR.exists():
-    try:
-        # 1. Mount static files
-        app.mount("/static", StaticFiles(directory=str(BUILD_DIR / "static")), name="static")
-        logger.info("✅ Static files mounted successfully")
-    except Exception as e:
-        logger.warning(f"⚠️ Could not mount static files: {e}")
-
-    # 2. Serve index.html on root
-    @app.get("/", include_in_schema=False)
+    app.mount("/static", StaticFiles(directory=str(BUILD_DIR / "static")), name="static")
+    
+    @app.get("/")
     async def serve_root():
-        """Serve React app on root"""
-        index_file = BUILD_DIR / "index.html"
-        if index_file.exists():
-            return FileResponse(str(index_file))
-        logger.error("❌ index.html not found!")
-        return JSONResponse(
-            status_code=503,
-            content={"message": "Frontend not built", "build_dir": str(BUILD_DIR)}
-        )
-
-    # 3. Catch-all for SPA routing
-    @app.get("/{full_path:path}", include_in_schema=False)
+        return FileResponse(str(BUILD_DIR / "index.html"))
+    
+    @app.get("/{full_path:path}")
     async def catch_all(full_path: str):
-        """Serve React app for all routes (SPA)"""
-        
-        # Skip static files (already mounted)
         if full_path.startswith("static/"):
-            raise HTTPException(status_code=404, detail="Static file not found")
+            raise HTTPException(status_code=404)
         
-        # Try to serve file if it has extension
         if "." in full_path.split("/")[-1]:
             file_path = BUILD_DIR / full_path
-            if file_path.exists() and file_path.is_file():
+            if file_path.exists():
                 return FileResponse(str(file_path))
         
-        # Serve index.html for all SPA routes
-        index_file = BUILD_DIR / "index.html"
-        if index_file.exists():
-            return FileResponse(str(index_file))
-        
-        logger.error(f"❌ Cannot serve {full_path}, index.html not found")
-        return JSONResponse(
-            status_code=503,
-            content={"message": "Frontend not available", "path": full_path}
-        )
-
-else:
-    logger.error(f"❌ Build directory not found: {BUILD_DIR}")
-    
-    @app.get("/", include_in_schema=False)
-    async def no_frontend():
-        return JSONResponse(
-            status_code=503,
-            content={
-                "message": "Frontend not built",
-                "build_dir": str(BUILD_DIR),
-                "current_dir": str(pathlib.Path.cwd())
-            }
-        )
-
+        return FileResponse(str(BUILD_DIR / "index.html"))
 
 if __name__ == "__main__":
     import uvicorn
     port = int(os.getenv("PORT", 8000))
-    logger.info(f"🚀 Starting Auto Parts API on port {port}")
-    logger.info(f"📂 Working directory: {pathlib.Path.cwd()}")
-    logger.info(f"📂 Build directory: {BUILD_DIR}")
-    uvicorn.run(
-        "main:app",
-        host="0.0.0.0",
-        port=port,
-        log_level="info"
-    )
+    uvicorn.run("main:app", host="0.0.0.0", port=port, log_level="info")
