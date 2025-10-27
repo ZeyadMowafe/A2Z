@@ -75,7 +75,8 @@ app.add_middleware(
     allow_origins=[
          "http://localhost:3000",
         "https://a-2z-6t7up8l3t-zeyads-projects-23e989a1.vercel.app",
-        "https://a-2z.vercel.app"
+        "https://a-2z.vercel.app",       # الدومين الرسمي بتاعك
+        "https://*.vercel.app", 
     ],
     allow_credentials=False,
     allow_methods=["*"],
