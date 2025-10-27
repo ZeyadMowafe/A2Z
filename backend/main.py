@@ -1171,6 +1171,14 @@ async def serve_root():
             content={"message": "Frontend not available"}
         )
 
+@app.exception_handler(404)
+async def custom_404_handler(request, exc):
+    index_path = os.path.join("build", "index.html")
+    if os.path.exists(index_path):
+        return FileResponse(index_path)
+    return {"detail": "Not Found"}
+
+
 # 4. Catch-all for React Router
 @app.get("/{full_path:path}")
 async def catch_all(full_path: str):
