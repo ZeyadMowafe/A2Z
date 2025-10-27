@@ -79,6 +79,7 @@ app.add_middleware(
         "http://localhost:3000",
         "http://localhost:5173",
         "http://127.0.0.1:3000",
+        "https://a-2z-6t7up8l3t-zeyads-projects-23e989a1.vercel.app/",
         "https://a-2z.vercel.app",
         "https://*.up.railway.app",
         "https://*.vercel.app"
