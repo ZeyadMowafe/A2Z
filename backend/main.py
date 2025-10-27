@@ -1148,29 +1148,54 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
 # FRONTEND SERVING
 # ========================================
 import pathlib
+import os
 
+# Find build directory
 BUILD_DIR = pathlib.Path(__file__).parent / "build"
+print(f"🔍 Looking for build at: {BUILD_DIR}")
+print(f"✅ Build exists: {BUILD_DIR.exists()}")
 
 if BUILD_DIR.exists():
-    app.mount("/static", StaticFiles(directory=str(BUILD_DIR / "static")), name="static")
+    print(f"📁 Files in build: {list(BUILD_DIR.iterdir())}")
     
-    @app.get("/")
-    async def serve_root():
+    # Mount static files
+    try:
+        app.mount("/static", StaticFiles(directory=str(BUILD_DIR / "static")), name="static")
+        print("✅ Static mounted")
+    except Exception as e:
+        print(f"❌ Static mount error: {e}")
+    
+    # Serve index.html on root
+    @app.get("/", include_in_schema=False)
+    async def root():
         return FileResponse(str(BUILD_DIR / "index.html"))
     
-    @app.get("/{full_path:path}")
-    async def catch_all(full_path: str):
-        if full_path.startswith("static/"):
-            raise HTTPException(status_code=404)
+    # Catch all other routes
+    @app.get("/{path:path}", include_in_schema=False)
+    async def catch_all(path: str):
+        print(f"📥 Request for: {path}")
         
-        if "." in full_path.split("/")[-1]:
-            file_path = BUILD_DIR / full_path
-            if file_path.exists():
-                return FileResponse(str(file_path))
+        # Don't catch static files
+        if path.startswith("static/"):
+            raise HTTPException(404)
         
+        # Try to serve actual file (like favicon.ico)
+        if "." in path:
+            file = BUILD_DIR / path
+            if file.exists():
+                return FileResponse(str(file))
+        
+        # Otherwise serve index.html (for React Router)
+        print(f"🔄 Serving index.html for: {path}")
         return FileResponse(str(BUILD_DIR / "index.html"))
+
+else:
+    print(f"❌ BUILD NOT FOUND: {BUILD_DIR}")
+    print(f"📂 Current dir: {pathlib.Path.cwd()}")
+    print(f"📂 Files here: {list(pathlib.Path.cwd().iterdir())}")
+
 
 if __name__ == "__main__":
     import uvicorn
     port = int(os.getenv("PORT", 8000))
-    uvicorn.run("main:app", host="0.0.0.0", port=port, log_level="info")
+    uvicorn.run("main:app", host="0.0.0.0", port=port
