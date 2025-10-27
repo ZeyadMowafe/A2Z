@@ -1144,58 +1144,67 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
 # FRONTEND SERVING - CORRECT WAY
 # ========================================
 
-# ========================================
-# FRONTEND SERVING
-# ========================================
-import pathlib
-import os
+# 1. Mount static files FIRST (CSS, JS, Images)
+try:
+    app.mount("/static", StaticFiles(directory="build/static"), name="static")
+    logger.info("✅ Static files mounted: /static -> build/static")
+except Exception as e:
+    logger.warning(f"⚠️ Static files not found: {e}")
 
-# Find build directory
-BUILD_DIR = pathlib.Path(__file__).parent / "build"
-print(f"🔍 Looking for build at: {BUILD_DIR}")
-print(f"✅ Build exists: {BUILD_DIR.exists()}")
+# 2. Serve other build assets (logo.png, favicon, etc.)
+try:
+    from starlette.staticfiles import StaticFiles
+    app.mount("/assets", StaticFiles(directory="build"), name="assets")
+    logger.info("✅ Assets mounted: /assets -> build")
+except Exception as e:
+    logger.warning(f"⚠️ Assets directory issue: {e}")
 
-if BUILD_DIR.exists():
-    print(f"📁 Files in build: {list(BUILD_DIR.iterdir())}")
-    
-    # Mount static files
+# 3. Root route - Serve React index.html
+@app.get("/")
+async def serve_root():
+    """Serve React app on root"""
     try:
-        app.mount("/static", StaticFiles(directory=str(BUILD_DIR / "static")), name="static")
-        print("✅ Static mounted")
-    except Exception as e:
-        print(f"❌ Static mount error: {e}")
-    
-    # Serve index.html on root
-    @app.get("/", include_in_schema=False)
-    async def root():
-        return FileResponse(str(BUILD_DIR / "index.html"))
-    
-    # Catch all other routes
-    @app.get("/{path:path}", include_in_schema=False)
-    async def catch_all(path: str):
-        print(f"📥 Request for: {path}")
-        
-        # Don't catch static files
-        if path.startswith("static/"):
-            raise HTTPException(404)
-        
-        # Try to serve actual file (like favicon.ico)
-        if "." in path:
-            file = BUILD_DIR / path
-            if file.exists():
-                return FileResponse(str(file))
-        
-        # Otherwise serve index.html (for React Router)
-        print(f"🔄 Serving index.html for: {path}")
-        return FileResponse(str(BUILD_DIR / "index.html"))
+        return FileResponse("build/index.html")
+    except FileNotFoundError:
+        return JSONResponse(
+            status_code=503,
+            content={"message": "Frontend not available"}
+        )
 
-else:
-    print(f"❌ BUILD NOT FOUND: {BUILD_DIR}")
-    print(f"📂 Current dir: {pathlib.Path.cwd()}")
-    print(f"📂 Files here: {list(pathlib.Path.cwd().iterdir())}")
+# 4. Catch-all for React Router
+@app.get("/{full_path:path}")
+async def catch_all(full_path: str):
+    """
+    Serve React app for client-side routing.
+    Exclude API routes.
+    """
+    # Don't catch API routes
+    if full_path.startswith(("api", "health", "docs", "redoc", "openapi.json", "static", "assets")):
+        raise HTTPException(status_code=404, detail="Not found")
+    
+    # Check if it's a file request (has extension)
+    if "." in full_path.split("/")[-1]:
+        # Try to serve from build directory
+        file_path = f"build/{full_path}"
+        if os.path.exists(file_path):
+            return FileResponse(file_path)
+        else:
+            raise HTTPException(status_code=404, detail="File not found")
+    
+    # Otherwise serve React app (for routes like /admin, /brand/1, etc.)
+    try:
+        return FileResponse("build/index.html")
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="Frontend not available")
 
 
 if __name__ == "__main__":
     import uvicorn
     port = int(os.getenv("PORT", 8000))
-    uvicorn.run("main:app", host="0.0.0.0", port=port
+    logger.info(f"🚀 Starting Auto Parts API on port {port}")
+    uvicorn.run(
+        "main:app",
+        host="0.0.0.0",
+        port=port,
+        log_level="info"
+    )
