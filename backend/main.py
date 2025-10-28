@@ -73,21 +73,26 @@ app = FastAPI(
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 # CORS - Railway compatible
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
+if settings.ENVIRONMENT == "production":
+    origins = [
+        "https://a-2z.vercel.app",
+        "https://a2z-production.up.railway.app",
+    ]
+else:
+    origins = [
         "http://localhost:3000",
         "http://localhost:5173",
         "http://127.0.0.1:3000",
-        "https://a-2z.vercel.app",
-        "https://*.railway.app",  # Railway domains
-        "https://*.up.railway.app",
-        "https://a2z-production.up.railway.app",
-        "https://*.vercel.app"
-    ],
+        "http://127.0.0.1:5173",
+    ]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],
+    expose_headers=["*"],
     max_age=3600,
 )
 
