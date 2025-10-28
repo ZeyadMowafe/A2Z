@@ -1057,6 +1057,23 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
 async def root():
     return {"message": "Auto Parts API", "version": "1.0.0", "docs": "/api/docs"}
 
+@app.get("/api")
+async def api_root():
+    return {
+        "message": "Auto Parts API", 
+        "version": "1.0.0", 
+        "status": "online",
+        "endpoints": {
+            "health": "/api/health",
+            "brands": "/api/brands",
+            "products": "/api/products",
+            "categories": "/api/categories",
+            "models": "/api/models",
+            "orders": "/api/orders",
+            "docs": "/api/docs"
+        }
+    }
+
 if __name__ == "__main__":
     import uvicorn
     port = int(os.getenv("PORT", 8000))
