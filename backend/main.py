@@ -1,5 +1,9 @@
 from fastapi import FastAPI, HTTPException, Depends, status, UploadFile, File, Form, Request
 from fastapi.middleware.cors import CORSMiddleware
+<<<<<<< HEAD
+=======
+from fastapi.middleware.gzip import GZipMiddleware
+>>>>>>> 20a42c5 (updates)
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.responses import JSONResponse, FileResponse
 from pydantic import BaseModel, EmailStr, Field
@@ -68,12 +72,31 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+<<<<<<< HEAD
 # ✅ CORS Configuration - FINAL VERSION
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_credentials=False,
     allow_methods=["*"],
+=======
+# Middlewares
+app.add_middleware(GZipMiddleware, minimum_size=1000)
+
+# CORS - Railway compatible
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "http://127.0.0.1:3000",
+        "https://*.railway.app",  # Railway domains
+        "https://*.up.railway.app",
+        "https://*.vercel.app"
+    ],
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+>>>>>>> 20a42c5 (updates)
     allow_headers=["*"],
     expose_headers=["*"],
 )
@@ -88,7 +111,11 @@ def get_supabase_client() -> Client:
 supabase = get_supabase_client()
 security = HTTPBearer()
 
+<<<<<<< HEAD
 # ✅ Rate Limiting Middleware ONLY
+=======
+# Rate Limiting
+>>>>>>> 20a42c5 (updates)
 @app.middleware("http")
 async def rate_limit_middleware(request: Request, call_next):
     if request.url.path.startswith("/api/"):
@@ -309,6 +336,11 @@ async def health_check():
             content={"status": "unhealthy"}
         )
 
+<<<<<<< HEAD
+=======
+# API Endpoints (same as before, just adding /api prefix where needed)
+
+>>>>>>> 20a42c5 (updates)
 # Brands
 @app.get("/api/brands")
 async def get_brands():
@@ -1032,7 +1064,11 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
     except Exception as e:
         raise HTTPException(status_code=401, detail="Authentication failed")
 
+<<<<<<< HEAD
 # Frontend serving
+=======
+# Frontend serving (optional - if deploying with React build)
+>>>>>>> 20a42c5 (updates)
 @app.get("/")
 async def root():
     return {"message": "Auto Parts API", "version": "1.0.0", "docs": "/api/docs"}
