@@ -1,10 +1,8 @@
 import { useCallback } from 'react';
 
 // ✅ API URL Configuration
-const API_URL = process.env.REACT_APP_API_URL || 
-  (window.location.hostname === "localhost" 
-    ? "http://127.0.0.1:8000/api"
-    : "https://a2z-production.up.railway.app/api");
+const API_URL = 
+     ("https://a2z-production.up.railway.app/api");
 
 console.log('🔗 API URL:', API_URL);
 console.log('🌍 Frontend URL:', window.location.origin);
