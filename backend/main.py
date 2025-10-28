@@ -82,6 +82,7 @@ app.add_middleware(
         "https://a-2z.vercel.app",
         "https://*.railway.app",  # Railway domains
         "https://*.up.railway.app",
+        "https://a2z-production.up.railway.app",
         "https://*.vercel.app"
     ],
     allow_credentials=True,
