@@ -2,7 +2,7 @@ from fastapi import FastAPI, HTTPException, Depends, status, UploadFile, File, F
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from fastapi.responses import JSONResponse, FileResponse, Response
+from fastapi.responses import JSONResponse, FileResponse
 from pydantic import BaseModel, EmailStr, Field
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timedelta
@@ -69,24 +69,25 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# ✅ CORS - Allow ALL origins (simple fix)
+# Middlewares
+app.add_middleware(GZipMiddleware, minimum_size=1000)
+
+# CORS - Railway compatible
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000",
+        "http://localhost:5173",
         "http://127.0.0.1:3000",
-        "https://a-2z.vercel.app",
-        "https://a-2z-6t7up8l3t-zeyads-projects-23e989a1.vercel.app",
-        "https://*.vercel.app",
+        "https://*.railway.app",  # Railway domains
+        "https://*.up.railway.app",
+        "https://*.vercel.app"
     ],
-    allow_origin_regex=r"https://.*\.vercel\.app",
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
+    max_age=3600,
 )
-
-# GZip Middleware
-app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 # Supabase client
 @lru_cache()
@@ -98,22 +99,9 @@ def get_supabase_client() -> Client:
 supabase = get_supabase_client()
 security = HTTPBearer()
 
-# ✅ Combined CORS + Rate Limiting Middleware
+# Rate Limiting
 @app.middleware("http")
-async def cors_and_rate_limit(request: Request, call_next):
-    # Handle preflight OPTIONS requests
-    if request.method == "OPTIONS":
-        return Response(
-            status_code=200,
-            headers={
-                "Access-Control-Allow-Origin": "*",
-                "Access-Control-Allow-Methods": "*",
-                "Access-Control-Allow-Headers": "*",
-                "Access-Control-Max-Age": "3600",
-            }
-        )
-    
-    # Rate limiting for API routes
+async def rate_limit_middleware(request: Request, call_next):
     if request.url.path.startswith("/api/"):
         client_ip = request.client.host
         current_time = time.time()
@@ -129,19 +117,12 @@ async def cors_and_rate_limit(request: Request, call_next):
         if len(rate_limit_storage[client_ip]) >= settings.RATE_LIMIT_REQUESTS:
             return JSONResponse(
                 status_code=429,
-                content={"detail": "Too many requests"},
-                headers={"Access-Control-Allow-Origin": "*"}
+                content={"detail": "Too many requests"}
             )
         
         rate_limit_storage[client_ip].append(current_time)
     
     response = await call_next(request)
-    
-    # Add CORS headers to ALL responses
-    response.headers["Access-Control-Allow-Origin"] = "*"
-    response.headers["Access-Control-Allow-Methods"] = "*"
-    response.headers["Access-Control-Allow-Headers"] = "*"
-    
     return response
 
 # Exception Handler
@@ -150,8 +131,7 @@ async def global_exception_handler(request: Request, exc: Exception):
     logger.error(f"Error: {str(exc)}", exc_info=True)
     return JSONResponse(
         status_code=500,
-        content={"detail": "Internal server error"},
-        headers={"Access-Control-Allow-Origin": "*"}
+        content={"detail": "Internal server error"}
     )
 
 # Models
@@ -340,7 +320,8 @@ async def health_check():
             content={"status": "unhealthy"}
         )
 
-# ✅ باقي الـ endpoints (نفس الكود القديم)
+# API Endpoints (same as before, just adding /api prefix where needed)
+
 # Brands
 @app.get("/api/brands")
 async def get_brands():
