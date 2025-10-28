@@ -5,7 +5,7 @@ import { MessageCircle } from 'lucide-react';
 import { pageVariants, pageTransition } from './constants/animations';
 import useApi from './hooks/useApi';
 import useCart from './hooks/useCart';
-import useLazyLoad from './hooks/useLazyLoad'; // إضافة الـ hook
+import useLazyLoad from './hooks/useLazyLoad'; 
 import Header from './components/common/Header';
 import Footer from './components/common/Footer';
 import CartModal from './components/common/CartModal';
