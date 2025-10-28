@@ -1,13 +1,13 @@
 import { useCallback } from 'react';
 
 // ✅ API URL Configuration
-const API_URL = 
-  process.env.REACT_APP_API_URL || 
-  (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
+const API_URL = process.env.REACT_APP_API_URL || 
+  (window.location.hostname === "localhost" 
     ? "http://127.0.0.1:8000/api"
     : "https://a2z-production.up.railway.app/api");
 
-console.log('🔗 Connected to API:', API_URL);
+console.log('🔗 API URL:', API_URL);
+console.log('🌍 Frontend URL:', window.location.origin);
 
 const apiCache = {};
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
