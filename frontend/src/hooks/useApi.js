@@ -12,6 +12,19 @@ console.log('🌍 Frontend URL:', window.location.origin);
 const apiCache = {};
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
+
+const testConnection = async () => {
+  try {
+    const response = await fetch(`${API_URL}/health`);
+    const data = await response.json();
+    console.log('✅ Backend Connected:', data);
+    return true;
+  } catch (error) {
+    console.error('❌ Backend Connection Failed:', error);
+    return false;
+  }
+};
+
 const useApi = () => {
   const fetchData = useCallback(async (endpoint, options = {}) => {
     const url = `${API_URL}${endpoint}`;
