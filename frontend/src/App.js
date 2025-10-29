@@ -225,7 +225,7 @@ const MainApp = () => {
   // Fetch brands with cache
   const fetchBrands = useCallback(async () => {
     try {
-      const data = await fetchWithCache('/brands', 'brands', 600000); // 10 minutes
+      const data = await fetchWithCache('/brands', 'brands', 600000);
       setBrands(data);
     } catch (error) {
       console.error('Error fetching brands:', error);
@@ -235,7 +235,7 @@ const MainApp = () => {
   // Fetch categories with cache
   const fetchCategories = useCallback(async () => {
     try {
-      const data = await fetchWithCache('/categories', 'categories', 600000); // 10 minutes
+      const data = await fetchWithCache('/categories', 'categories', 600000);
       setCategories(data);
     } catch (error) {
       console.error('Error fetching categories:', error);
@@ -247,7 +247,7 @@ const MainApp = () => {
     setLoading(true);
     try {
       const cacheKey = `models_${brandId}`;
-      const data = await fetchWithCache(`/brands/${brandId}/models`, cacheKey, 300000); // 5 minutes
+      const data = await fetchWithCache(`/brands/${brandId}/models`, cacheKey, 300000);
       setModels(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error fetching models:', error);
@@ -277,7 +277,7 @@ const MainApp = () => {
       }
       
       const cacheKey = `products_${params.join('_')}`;
-      const data = await fetchWithCache(url, cacheKey, 180000); // 3 minutes
+      const data = await fetchWithCache(url, cacheKey, 180000);
       setProducts(data);
     } catch (error) {
       console.error('Error fetching products:', error);
@@ -292,7 +292,7 @@ const MainApp = () => {
     setLoading(true);
     try {
       const cacheKey = `product_${id}`;
-      const data = await fetchWithCache(`/products/${id}`, cacheKey, 300000); // 5 minutes
+      const data = await fetchWithCache(`/products/${id}`, cacheKey, 300000);
       setSelectedProduct(data);
     } catch (error) {
       console.error('Error fetching product details:', error);
@@ -382,7 +382,7 @@ const MainApp = () => {
       setLoading(true);
       try {
         const cacheKey = `search_${query}`;
-        const data = await fetchWithCache(`/products?search=${encodeURIComponent(query)}`, cacheKey, 120000); // 2 minutes
+        const data = await fetchWithCache(`/products?search=${encodeURIComponent(query)}`, cacheKey, 120000);
         setSearchResults(data);
       } catch (error) {
         console.error('Error searching products:', error);
@@ -455,32 +455,33 @@ const MainApp = () => {
     }
   }, [currentView, navigate]);
 
-const handleBrandClick = useCallback((brand) => {
-  setSelectedBrand(brand);
-  setSelectedModel(null);
-  fetchModelsForBrand(brand.id);
-  navigate(`/brand/${brand.id}`);
-  window.scrollTo({ top: 0, behavior: 'auto' });
-}, [navigate, fetchModelsForBrand]);
+  const handleBrandClick = useCallback((brand) => {
+    setSelectedBrand(brand);
+    setSelectedModel(null);
+    fetchModelsForBrand(brand.id);
+    navigate(`/brand/${brand.id}`);
+    window.scrollTo({ top: 0, behavior: 'auto' });
+  }, [navigate, fetchModelsForBrand]);
 
-const handleModelClick = useCallback((model) => {
-  setSelectedModel(model);
-  navigate(`/brand/${selectedBrand.id}/model/${model.id}`);
-  window.scrollTo({ top: 0, behavior: 'auto' });
-}, [navigate, selectedBrand]);
+  const handleModelClick = useCallback((model) => {
+    setSelectedModel(model);
+    navigate(`/brand/${selectedBrand.id}/model/${model.id}`);
+    window.scrollTo({ top: 0, behavior: 'auto' });
+  }, [navigate, selectedBrand]);
 
-const handleBackToHome = useCallback(() => {
-  setSelectedBrand(null);
-  setSelectedModel(null);
-  navigate('/');
-  window.scrollTo({ top: 0, behavior: 'auto' });
-}, [navigate]);
+  const handleBackToHome = useCallback(() => {
+    setSelectedBrand(null);
+    setSelectedModel(null);
+    navigate('/');
+    window.scrollTo({ top: 0, behavior: 'auto' });
+  }, [navigate]);
 
-const handleBackToModels = useCallback(() => {
-  setSelectedModel(null);
-  navigate(`/brand/${selectedBrand.id}`);
-  window.scrollTo({ top: 0, behavior: 'auto' });
-}, [navigate, selectedBrand]);
+  const handleBackToModels = useCallback(() => {
+    setSelectedModel(null);
+    navigate(`/brand/${selectedBrand.id}`);
+    window.scrollTo({ top: 0, behavior: 'auto' });
+  }, [navigate, selectedBrand]);
+
   const handleProceedToCheckout = useCallback(() => {
     setShowCart(false);
     setShowCheckout(true);
@@ -541,139 +542,144 @@ const handleBackToModels = useCallback(() => {
   }, [categories, products]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-gray-50">
-      {orderSuccess && <SuccessNotification onClose={() => setOrderSuccess(false)} />}
+    <>
+      {/* Fixed Background - مش هتتعمل re-render تاني */}
+      <div className="fixed inset-0 -z-10 bg-gradient-to-br from-gray-50 via-blue-50 to-gray-50" />
       
-      <Header
-        cartCount={cart.cartCount}
-        toggleCart={() => setShowCart(true)}
-        scrollToProducts={scrollToBrands}
-        scrollToAbout={scrollToAbout}
-        scrollToContact={scrollToContact}
-        onScrollToHome={handleBackToHome}
-        onSearch={handleSearch}
-        searchResults={searchResults}
-        loading={loading}
-        onAddToCart={cart.addToCart}
-        onProductClick={handleProductClick}
-        onCloseSearch={clearSearch}
-        onViewDetails={handleViewDetails}
-      />
+      <div className="min-h-screen relative">
+        {orderSuccess && <SuccessNotification onClose={() => setOrderSuccess(false)} />}
+        
+        <Header
+          cartCount={cart.cartCount}
+          toggleCart={() => setShowCart(true)}
+          scrollToProducts={scrollToBrands}
+          scrollToAbout={scrollToAbout}
+          scrollToContact={scrollToContact}
+          onScrollToHome={handleBackToHome}
+          onSearch={handleSearch}
+          searchResults={searchResults}
+          loading={loading}
+          onAddToCart={cart.addToCart}
+          onProductClick={handleProductClick}
+          onCloseSearch={clearSearch}
+          onViewDetails={handleViewDetails}
+        />
 
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={location.pathname + currentView}
-          initial="initial"
-          animate="in"
-          exit="out"
-          variants={pageVariants}
-          transition={pageTransition}
-          className="min-h-screen"
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={location.pathname + currentView}
+            initial="initial"
+            animate="in"
+            exit="out"
+            variants={pageVariants}
+            transition={pageTransition}
+            className="min-h-screen"
+          >
+            {currentView !== 'home' && (
+              <BackButton 
+                onClick={currentView === 'productDetails' ? () => navigate(-1) : 
+                         currentView === 'parts' ? handleBackToModels : 
+                         handleBackToHome} 
+                currentView={currentView}
+                selectedBrand={selectedBrand}
+                selectedModel={selectedModel}
+              />
+            )}
+
+            {currentView === 'home' && (
+              <LazyHomeView 
+                brands={brands}
+                products={products}
+                brandsRef={brandsRef}
+                onBrandClick={handleBrandClick}
+                onScrollToBrands={scrollToBrands}
+              />
+            )}
+
+            {currentView === 'models' && selectedBrand && (
+              <LazyModelsView
+                selectedBrand={selectedBrand}
+                models={models}
+                loading={loading}
+                onModelClick={handleModelClick}
+              />
+            )}
+
+            {currentView === 'productDetails' && selectedProduct && (
+              <LazyProductDetailsView 
+                product={selectedProduct}
+                loading={loading}
+                onAddToCart={cart.addToCart}
+                onOpenCart={() => setShowCart(true)}
+                onBack={() => navigate(-1)}
+              />
+            )}
+
+            {currentView === 'parts' && selectedBrand && selectedModel && (
+              <LazyPartsView
+                selectedBrand={selectedBrand}
+                selectedModel={selectedModel}
+                products={products}
+                categories={categories}
+                productsByCategory={productsByCategory}
+                loading={loading}
+                onAddToCart={cart.addToCart}
+                onViewDetails={handleViewDetails}
+              />
+            )}
+
+            {currentView === 'home' && (
+              <>
+                <LazyAboutSection aboutRef={aboutRef} />
+                <LazyContactSection contactRef={contactRef} />
+              </>
+            )}
+          </motion.div>
+        </AnimatePresence>
+
+        <Footer />
+
+        <motion.button
+          onClick={handleWhatsAppClick}
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
+          className="fixed bottom-6 left-6 z-50 bg-gradient-to-br from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white rounded-full p-4 shadow-2xl shadow-green-500/50 hover:shadow-green-600/60 transition-all duration-300 group"
+          aria-label="Contact us on WhatsApp"
         >
-          {currentView !== 'home' && (
-            <BackButton 
-              onClick={currentView === 'productDetails' ? () => navigate(-1) : 
-                       currentView === 'parts' ? handleBackToModels : 
-                       handleBackToHome} 
-              currentView={currentView}
-              selectedBrand={selectedBrand}
-              selectedModel={selectedModel}
-            />
-          )}
+          <MessageCircle className="w-7 h-7" />
+          
+          <span className="absolute inset-0 rounded-full bg-green-400 animate-ping opacity-20"></span>
+          
+          <span className="absolute left-full ml-3 top-1/2 -translate-y-1/2 bg-slate-900 text-white text-sm px-3 py-2 rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+            تواصل معنا
+          </span>
+        </motion.button>
 
-          {currentView === 'home' && (
-            <LazyHomeView 
-              brands={brands}
-              products={products}
-              brandsRef={brandsRef}
-              onBrandClick={handleBrandClick}
-              onScrollToBrands={scrollToBrands}
-            />
-          )}
+        {showCart && (
+          <CartModal
+            cart={cart.cart}
+            updateQuantity={cart.updateQuantity}
+            removeFromCart={cart.removeFromCart}
+            getTotalPrice={cart.getTotalPrice}
+            onClose={() => setShowCart(false)}
+            onCheckout={handleProceedToCheckout}
+          />
+        )}
 
-          {currentView === 'models' && selectedBrand && (
-            <LazyModelsView
-              selectedBrand={selectedBrand}
-              models={models}
-              loading={loading}
-              onModelClick={handleModelClick}
-            />
-          )}
-
-          {currentView === 'productDetails' && selectedProduct && (
-            <LazyProductDetailsView 
-              product={selectedProduct}
-              loading={loading}
-              onAddToCart={cart.addToCart}
-              onOpenCart={() => setShowCart(true)}
-              onBack={() => navigate(-1)}
-            />
-          )}
-
-          {currentView === 'parts' && selectedBrand && selectedModel && (
-            <LazyPartsView
-              selectedBrand={selectedBrand}
-              selectedModel={selectedModel}
-              products={products}
-              categories={categories}
-              productsByCategory={productsByCategory}
-              loading={loading}
-              onAddToCart={cart.addToCart}
-              onViewDetails={handleViewDetails}
-            />
-          )}
-
-          {currentView === 'home' && (
-            <>
-              <LazyAboutSection aboutRef={aboutRef} />
-              <LazyContactSection contactRef={contactRef} />
-            </>
-          )}
-        </motion.div>
-      </AnimatePresence>
-
-      <Footer />
-
-      <motion.button
-        onClick={handleWhatsAppClick}
-        initial={{ scale: 0 }}
-        animate={{ scale: 1 }}
-        whileHover={{ scale: 1.1 }}
-        whileTap={{ scale: 0.9 }}
-        className="fixed bottom-6 left-6 z-50 bg-gradient-to-br from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white rounded-full p-4 shadow-2xl shadow-green-500/50 hover:shadow-green-600/60 transition-all duration-300 group"
-        aria-label="Contact us on WhatsApp"
-      >
-        <MessageCircle className="w-7 h-7" />
-        
-        <span className="absolute inset-0 rounded-full bg-green-400 animate-ping opacity-20"></span>
-        
-        <span className="absolute left-full ml-3 top-1/2 -translate-y-1/2 bg-slate-900 text-white text-sm px-3 py-2 rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
-          تواصل معنا
-        </span>
-      </motion.button>
-
-      {showCart && (
-        <CartModal
-          cart={cart.cart}
-          updateQuantity={cart.updateQuantity}
-          removeFromCart={cart.removeFromCart}
-          getTotalPrice={cart.getTotalPrice}
-          onClose={() => setShowCart(false)}
-          onCheckout={handleProceedToCheckout}
-        />
-      )}
-
-      {showCheckout && (
-        <CheckoutModal
-          customerInfo={customerInfo}
-          setCustomerInfo={setCustomerInfo}
-          cart={cart.cart}
-          getTotalPrice={cart.getTotalPrice}
-          onClose={() => setShowCheckout(false)}
-          onSubmit={handleCheckoutComplete}
-        />
-      )}
-    </div>
+        {showCheckout && (
+          <CheckoutModal
+            customerInfo={customerInfo}
+            setCustomerInfo={setCustomerInfo}
+            cart={cart.cart}
+            getTotalPrice={cart.getTotalPrice}
+            onClose={() => setShowCheckout(false)}
+            onSubmit={handleCheckoutComplete}
+          />
+        )}
+      </div>
+    </>
   );
 };
 
