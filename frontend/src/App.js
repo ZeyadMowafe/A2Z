@@ -21,13 +21,16 @@ import AboutSection from './components/sections/AboutSection';
 import ContactSection from './components/sections/ContactSection';
 import AdminPanel from './components/AdminPanel';
 
-// Enhanced Cache utility مع تنظيف تلقائي
+// Detect mobile device
+const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+// Enhanced Cache utility محسّن للموبايل
 const cache = {
   data: {},
   timestamps: {},
-  maxSize: 50, // حد أقصى 50 عنصر في الكاش
+  maxSize: isMobile ? 30 : 50, // حد أقل للموبايل
   
-  set(key, value, ttl = 600000) { // 10 دقايق default
+  set(key, value, ttl = 600000) {
     // لو الكاش ممتلئ، نحذف أقدم عنصر
     if (Object.keys(this.data).length >= this.maxSize) {
       const oldestKey = Object.keys(this.timestamps).reduce((a, b) => 
@@ -58,7 +61,6 @@ const cache = {
     this.timestamps = {};
   },
   
-  // تنظيف الكاش القديم
   cleanup() {
     const now = Date.now();
     Object.keys(this.timestamps).forEach(key => {
@@ -69,8 +71,10 @@ const cache = {
   }
 };
 
-// تنظيف الكاش كل 5 دقايق
-setInterval(() => cache.cleanup(), 300000);
+// تنظيف أقل على الموبايل
+if (!isMobile) {
+  setInterval(() => cache.cleanup(), 300000);
+}
 
 // Lazy Loaded HomeView component
 const LazyHomeView = ({ brands, products, brandsRef, onBrandClick, onScrollToBrands }) => {
@@ -456,6 +460,7 @@ const MainApp = () => {
   const handleViewDetails = useCallback((product) => {
     setIsNavigating(true);
     
+    const delay = isMobile ? 100 : 150;
     setTimeout(() => {
       if (product.brand_id && product.model_id) {
         navigate(`/brand/${product.brand_id}/model/${product.model_id}/product/${product.id}`);
@@ -466,7 +471,7 @@ const MainApp = () => {
       }
       window.scrollTo({ top: 0, behavior: 'auto' });
       setIsNavigating(false);
-    }, 150);
+    }, delay);
   }, [navigate]);
 
   const scrollToAbout = useCallback(() => {
@@ -481,6 +486,7 @@ const MainApp = () => {
     if (currentView !== 'home') {
       setIsNavigating(true);
       
+      const delay = isMobile ? 100 : 150;
       setTimeout(() => {
         navigate('/');
         setSelectedBrand(null);
@@ -490,7 +496,7 @@ const MainApp = () => {
           brandsRef.current?.scrollIntoView({ behavior: 'smooth' });
           setIsNavigating(false);
         }, 200);
-      }, 150);
+      }, delay);
     } else {
       brandsRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
@@ -502,22 +508,24 @@ const MainApp = () => {
     setSelectedModel(null);
     fetchModelsForBrand(brand.id);
     
+    const delay = isMobile ? 100 : 150; // أسرع على الموبايل
     setTimeout(() => {
       navigate(`/brand/${brand.id}`);
       window.scrollTo({ top: 0, behavior: 'auto' });
       setIsNavigating(false);
-    }, 150);
+    }, delay);
   }, [navigate, fetchModelsForBrand]);
 
   const handleModelClick = useCallback((model) => {
     setIsNavigating(true);
     setSelectedModel(model);
     
+    const delay = isMobile ? 100 : 150;
     setTimeout(() => {
       navigate(`/brand/${selectedBrand.id}/model/${model.id}`);
       window.scrollTo({ top: 0, behavior: 'auto' });
       setIsNavigating(false);
-    }, 150);
+    }, delay);
   }, [navigate, selectedBrand]);
 
   const handleBackToHome = useCallback(() => {
@@ -525,22 +533,24 @@ const MainApp = () => {
     setSelectedBrand(null);
     setSelectedModel(null);
     
+    const delay = isMobile ? 100 : 150;
     setTimeout(() => {
       navigate('/');
       window.scrollTo({ top: 0, behavior: 'auto' });
       setIsNavigating(false);
-    }, 150);
+    }, delay);
   }, [navigate]);
 
   const handleBackToModels = useCallback(() => {
     setIsNavigating(true);
     setSelectedModel(null);
     
+    const delay = isMobile ? 100 : 150;
     setTimeout(() => {
       navigate(`/brand/${selectedBrand.id}`);
       window.scrollTo({ top: 0, behavior: 'auto' });
       setIsNavigating(false);
-    }, 150);
+    }, delay);
   }, [navigate, selectedBrand]);
 
   const handleProceedToCheckout = useCallback(() => {
@@ -607,9 +617,11 @@ const MainApp = () => {
       {/* Fixed Background - مش هتتعمل re-render تاني */}
       <div className="fixed inset-0 -z-10 bg-gradient-to-br from-gray-50 via-blue-50 to-gray-50" />
       
-      {/* Navigation Overlay */}
+      {/* Navigation Overlay - أخف على الموبايل */}
       {isNavigating && (
-        <div className="fixed inset-0 z-[9999] bg-black/10 backdrop-blur-[2px] pointer-events-none transition-opacity duration-150" />
+        <div className={`fixed inset-0 z-[9999] pointer-events-none transition-opacity duration-150 ${
+          isMobile ? 'bg-black/5 backdrop-blur-[1px]' : 'bg-black/10 backdrop-blur-[2px]'
+        }`} />
       )}
       
       <div className="min-h-screen relative">
