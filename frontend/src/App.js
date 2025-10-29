@@ -674,36 +674,63 @@ const MainApp = () => {
               />
             )}
 
-            {currentView === 'models' && selectedBrand && (
-              <LazyModelsView
-                selectedBrand={selectedBrand}
-                models={models}
-                loading={loading}
-                onModelClick={handleModelClick}
-              />
+            {currentView === 'models' && (
+              selectedBrand ? (
+                <LazyModelsView
+                  selectedBrand={selectedBrand}
+                  models={models}
+                  loading={loading}
+                  onModelClick={handleModelClick}
+                />
+              ) : (
+                <div className="min-h-screen flex items-center justify-center">
+                  <div className="text-center">
+                    <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+                    <p className="text-gray-600">Loading...</p>
+                  </div>
+                </div>
+              )
             )}
 
-            {currentView === 'productDetails' && selectedProduct && (
-              <LazyProductDetailsView 
-                product={selectedProduct}
-                loading={loading}
-                onAddToCart={cart.addToCart}
-                onOpenCart={() => setShowCart(true)}
-                onBack={() => navigate(-1)}
-              />
+            {currentView === 'productDetails' && (
+              selectedProduct ? (
+                <LazyProductDetailsView 
+                  product={selectedProduct}
+                  loading={loading}
+                  onAddToCart={cart.addToCart}
+                  onOpenCart={() => setShowCart(true)}
+                  onBack={() => navigate(-1)}
+                />
+              ) : (
+                <div className="min-h-screen flex items-center justify-center">
+                  <div className="text-center">
+                    <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+                    <p className="text-gray-600">Loading product...</p>
+                  </div>
+                </div>
+              )
             )}
 
-            {currentView === 'parts' && selectedBrand && selectedModel && (
-              <LazyPartsView
-                selectedBrand={selectedBrand}
-                selectedModel={selectedModel}
-                products={products}
-                categories={categories}
-                productsByCategory={productsByCategory}
-                loading={loading}
-                onAddToCart={cart.addToCart}
-                onViewDetails={handleViewDetails}
-              />
+            {currentView === 'parts' && (
+              selectedBrand && selectedModel ? (
+                <LazyPartsView
+                  selectedBrand={selectedBrand}
+                  selectedModel={selectedModel}
+                  products={products}
+                  categories={categories}
+                  productsByCategory={productsByCategory}
+                  loading={loading}
+                  onAddToCart={cart.addToCart}
+                  onViewDetails={handleViewDetails}
+                />
+              ) : (
+                <div className="min-h-screen flex items-center justify-center">
+                  <div className="text-center">
+                    <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+                    <p className="text-gray-600">Loading parts...</p>
+                  </div>
+                </div>
+              )
             )}
 
             {currentView === 'home' && (
