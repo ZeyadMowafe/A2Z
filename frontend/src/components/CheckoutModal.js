@@ -28,31 +28,23 @@ const CheckoutModal = ({ customerInfo = {}, setCustomerInfo, cart, getTotalPrice
         throw new Error('Order confirmation failed');
       }
     } catch (error) {
-      console.error('Order submission error:', error);
-      
-      let userFriendlyMessage = '';
+      let errorMsg = 'An error occurred while submitting your order';
 
-      if (!navigator.onLine) {
-        userFriendlyMessage = '⚠️ لا يوجد اتصال بالإنترنت\n\nالرجاء التأكد من:\n• تشغيل الواي فاي أو البيانات\n• وجود إشارة إنترنت قوية\n• ثم المحاولة مرة أخرى';
-      } else if (error && error.message) {
-        if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
-          userFriendlyMessage = '⚠️ مشكلة في الاتصال بالخادم\n\nالرجاء:\n• التأكد من اتصال الإنترنت\n• إعادة المحاولة بعد قليل\n• إذا استمرت المشكلة، تواصل معنا';
-        } else if (error.message.includes('500') || error.message.includes('502') || error.message.includes('503')) {
-          userFriendlyMessage = '⚠️ الخادم مشغول حالياً\n\nالرجاء:\n• الانتظار دقيقة واحدة\n• إعادة المحاولة\n• إذا لم تنجح، تواصل معنا على 01016887251';
-        } else if (error.message.includes('timeout')) {
-          userFriendlyMessage = '⚠️ انتهت مهلة الاتصال\n\nالرجاء:\n• التأكد من سرعة الإنترنت\n• المحاولة مرة أخرى\n• استخدام شبكة إنترنت أقوى';
-        } else if (error.message.includes('validation') || error.message.includes('invalid')) {
-          userFriendlyMessage = '⚠️ خطأ في البيانات المدخلة\n\nالرجاء التأكد من:\n• صحة رقم الهاتف\n• صحة البريد الإلكتروني\n• اكتمال جميع الحقول المطلوبة';
-        } else if (error.message.includes('Order confirmation failed')) {
-          userFriendlyMessage = '⚠️ لم يتم تأكيد الطلب\n\nالمشكلة:\n• لم نستلم تأكيد من النظام\n\nالحل:\n• حاول مرة أخرى\n• أو تواصل معنا على 01016887251';
+      if (error && error.message) {
+        if (
+          error.message.includes('Failed to fetch') ||
+          error.message.includes('NetworkError') ||
+          !navigator.onLine
+        ) {
+          errorMsg = 'No internet connection. Please check your network and try again';
+        } else if (error.message.includes('500')) {
+          errorMsg = 'Server error. Please try again later';
         } else {
-          userFriendlyMessage = `⚠️ حدث خطأ غير متوقع\n\nتفاصيل المشكلة:\n${error.message}\n\nالرجاء:\n• المحاولة مرة أخرى\n• أو التواصل معنا على 01016887251`;
+          errorMsg = error.message;
         }
-      } else {
-        userFriendlyMessage = '⚠️ حدث خطأ غير معروف\n\nالرجاء:\n• المحاولة مرة أخرى\n• إذا استمرت المشكلة\n• تواصل معنا على 01016887251';
       }
 
-      setErrorMessage(userFriendlyMessage);
+      setErrorMessage(errorMsg);
       setShowResult('failure');
     } finally {
       setIsLoading(false);
@@ -155,8 +147,8 @@ const CheckoutModal = ({ customerInfo = {}, setCustomerInfo, cart, getTotalPrice
           {/* Error Body */}
           <div className="p-8">
             <div className="bg-red-50 rounded-sm p-6 mb-6 border border-red-200">
-              <p className="text-slate-900 text-center mb-3 font-light tracking-wide text-lg">ما هي المشكلة؟</p>
-              <p className="text-slate-700 text-sm text-right leading-relaxed font-light whitespace-pre-wrap" dir="rtl">{errorMessage || 'حدث خطأ غير معروف'}</p>
+              <p className="text-slate-900 text-center mb-2 font-light tracking-wide">ERROR DETAILS</p>
+              <p className="text-slate-600 text-sm text-center leading-relaxed font-light">{errorMessage || 'Unknown error occurred'}</p>
             </div>
 
             <div className="bg-slate-50 rounded-sm p-5 mb-6 border border-slate-200">
