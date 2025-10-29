@@ -105,8 +105,65 @@ const BrandsSection = ({ brands, brandsRef, onBrandClick, productsCount }) => {
 const BrandsGrid = ({ brands, onBrandClick }) => (
   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5 lg:gap-6 max-w-7xl mx-auto mb-16 md:mb-24 lg:mb-32">
     {brands.map((brand) => (
-      <BrandCard key={brand.id} brand={brand} onClick={() => onBrandClick(brand)} />
+      <EnhancedBrandCard key={brand.id} brand={brand} onClick={() => onBrandClick(brand)} />
     ))}
+  </div>
+);
+
+// Enhanced Brand Card مع صورة واضحة
+const EnhancedBrandCard = ({ brand, onClick }) => (
+  <div 
+    onClick={onClick}
+    className="group relative bg-zinc-900/50 backdrop-blur-sm border border-zinc-800 hover:border-blue-500/50 transition-all duration-500 overflow-hidden cursor-pointer"
+  >
+    {/* Glow Effect on Hover */}
+    <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+      <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 via-transparent to-transparent"></div>
+    </div>
+
+    {/* Top Accent Line */}
+    <div className="absolute top-0 left-0 w-0 h-[2px] bg-gradient-to-r from-blue-500 to-blue-400 group-hover:w-full transition-all duration-700"></div>
+
+    {/* Image Container - محسّن للوضوح */}
+    <div className="relative h-48 md:h-56 lg:h-64 bg-white/5 overflow-hidden">
+      <img 
+        src={brand.image} 
+        alt={brand.name}
+        className="w-full h-full object-contain p-8 md:p-10 lg:p-12 transform group-hover:scale-110 transition-all duration-700 filter brightness-100 contrast-110"
+        style={{
+          filter: 'brightness(1.1) contrast(1.1)'
+        }}
+      />
+      
+      {/* Subtle gradient overlay - أخف علشان الصورة تظهر */}
+      <div className="absolute inset-0 bg-gradient-to-t from-zinc-900/20 via-transparent to-transparent opacity-60 group-hover:opacity-30 transition-opacity duration-500"></div>
+      
+      {/* Shine Effect */}
+      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700">
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent transform -skew-x-12 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
+      </div>
+    </div>
+
+    {/* Content */}
+    <div className="relative p-6 md:p-8">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-white text-lg md:text-xl font-light tracking-wide group-hover:text-blue-400 transition-colors duration-500">
+          {brand.name}
+        </h3>
+        <Car className="w-5 h-5 text-zinc-600 group-hover:text-blue-400 transition-colors duration-500" />
+      </div>
+
+      {/* Divider */}
+      <div className="h-[1px] w-12 bg-zinc-700 group-hover:w-full group-hover:bg-blue-500 transition-all duration-700 mb-4"></div>
+
+      {/* Description */}
+      <p className="text-zinc-500 text-sm font-light leading-relaxed group-hover:text-zinc-400 transition-colors duration-500">
+        {brand.description || 'Premium automotive parts'}
+      </p>
+    </div>
+
+    {/* Corner Accent */}
+    <div className="absolute bottom-4 right-4 w-6 h-6 border-r border-b border-zinc-800 group-hover:border-blue-500/50 transition-colors duration-500"></div>
   </div>
 );
 
