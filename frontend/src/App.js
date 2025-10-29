@@ -458,35 +458,29 @@ const MainApp = () => {
 const handleBrandClick = useCallback((brand) => {
   setSelectedBrand(brand);
   setSelectedModel(null);
-  
-  // Smooth transition
-  setTimeout(() => {
-    navigate(`/brand/${brand.id}`);
-    fetchModelsForBrand(brand.id);
-  }, 100); // delay بسيط جداً
-  
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  fetchModelsForBrand(brand.id);
+  navigate(`/brand/${brand.id}`);
+  window.scrollTo({ top: 0, behavior: 'auto' });
 }, [navigate, fetchModelsForBrand]);
 
-  const handleModelClick = useCallback((model) => {
-    setSelectedModel(model);
-    navigate(`/brand/${selectedBrand.id}/model/${model.id}`);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [navigate, selectedBrand]);
+const handleModelClick = useCallback((model) => {
+  setSelectedModel(model);
+  navigate(`/brand/${selectedBrand.id}/model/${model.id}`);
+  window.scrollTo({ top: 0, behavior: 'auto' });
+}, [navigate, selectedBrand]);
 
-  const handleBackToHome = useCallback(() => {
-    navigate('/');
-    setSelectedBrand(null);
-    setSelectedModel(null);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [navigate]);
+const handleBackToHome = useCallback(() => {
+  setSelectedBrand(null);
+  setSelectedModel(null);
+  navigate('/');
+  window.scrollTo({ top: 0, behavior: 'auto' });
+}, [navigate]);
 
-  const handleBackToModels = useCallback(() => {
-    navigate(`/brand/${selectedBrand.id}`);
-    setSelectedModel(null);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [navigate, selectedBrand]);
-
+const handleBackToModels = useCallback(() => {
+  setSelectedModel(null);
+  navigate(`/brand/${selectedBrand.id}`);
+  window.scrollTo({ top: 0, behavior: 'auto' });
+}, [navigate, selectedBrand]);
   const handleProceedToCheckout = useCallback(() => {
     setShowCart(false);
     setShowCheckout(true);
