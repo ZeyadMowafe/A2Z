@@ -76,10 +76,10 @@ if (!isMobile) {
   setInterval(() => cache.cleanup(), 300000);
 }
 
-// Lazy Loaded HomeView component
+// Lazy Loaded HomeView component - محسّن للموبايل
 const LazyHomeView = ({ brands, products, brandsRef, onBrandClick, onScrollToBrands }) => {
-  const [heroRef, heroVisible] = useLazyLoad({ threshold: 0.1 });
-  const [brandsRefLazy, brandsVisible] = useLazyLoad({ threshold: 0.1 });
+  const [heroRef, heroVisible] = useLazyLoad({ threshold: isMobile ? 0.05 : 0.1 });
+  const [brandsRefLazy, brandsVisible] = useLazyLoad({ threshold: isMobile ? 0.05 : 0.1 });
 
   return (
     <>
@@ -103,9 +103,9 @@ const LazyHomeView = ({ brands, products, brandsRef, onBrandClick, onScrollToBra
   );
 };
 
-// Lazy Loaded ModelsView component
+// Lazy Loaded ModelsView component - محسّن للموبايل
 const LazyModelsView = ({ selectedBrand, models, loading, onModelClick }) => {
-  const [modelsRef, modelsVisible] = useLazyLoad({ threshold: 0.1 });
+  const [modelsRef, modelsVisible] = useLazyLoad({ threshold: isMobile ? 0.05 : 0.1 });
 
   return (
     <div ref={modelsRef}>
@@ -121,7 +121,7 @@ const LazyModelsView = ({ selectedBrand, models, loading, onModelClick }) => {
   );
 };
 
-// Lazy Loaded PartsView component
+// Lazy Loaded PartsView component - محسّن للموبايل
 const LazyPartsView = ({ 
   selectedBrand, 
   selectedModel, 
@@ -132,7 +132,7 @@ const LazyPartsView = ({
   onAddToCart, 
   onViewDetails 
 }) => {
-  const [partsRef, partsVisible] = useLazyLoad({ threshold: 0.05 });
+  const [partsRef, partsVisible] = useLazyLoad({ threshold: isMobile ? 0.02 : 0.05 });
 
   return (
     <div ref={partsRef}>
@@ -152,9 +152,9 @@ const LazyPartsView = ({
   );
 };
 
-// Lazy Loaded ProductDetailsView component
+// Lazy Loaded ProductDetailsView component - محسّن للموبايل
 const LazyProductDetailsView = ({ product, loading, onAddToCart, onOpenCart, onBack }) => {
-  const [productRef, productVisible] = useLazyLoad({ threshold: 0.1 });
+  const [productRef, productVisible] = useLazyLoad({ threshold: isMobile ? 0.05 : 0.1 });
 
   return (
     <div ref={productRef}>
@@ -171,9 +171,9 @@ const LazyProductDetailsView = ({ product, loading, onAddToCart, onOpenCart, onB
   );
 };
 
-// Lazy Loaded AboutSection component
+// Lazy Loaded AboutSection component - محسّن للموبايل
 const LazyAboutSection = ({ aboutRef }) => {
-  const [aboutLazyRef, aboutVisible] = useLazyLoad({ threshold: 0.1 });
+  const [aboutLazyRef, aboutVisible] = useLazyLoad({ threshold: isMobile ? 0.05 : 0.1 });
 
   return (
     <div ref={aboutLazyRef}>
@@ -184,9 +184,9 @@ const LazyAboutSection = ({ aboutRef }) => {
   );
 };
 
-// Lazy Loaded ContactSection component
+// Lazy Loaded ContactSection component - محسّن للموبايل
 const LazyContactSection = ({ contactRef }) => {
-  const [contactLazyRef, contactVisible] = useLazyLoad({ threshold: 0.1 });
+  const [contactLazyRef, contactVisible] = useLazyLoad({ threshold: isMobile ? 0.05 : 0.1 });
 
   return (
     <div ref={contactLazyRef}>
@@ -458,10 +458,9 @@ const MainApp = () => {
   }, []);
 
   const handleViewDetails = useCallback((product) => {
-    setIsNavigating(true);
-    
-    const delay = isMobile ? 100 : 150;
+    const delay = isMobile ? 80 : 150;
     setTimeout(() => {
+      setIsNavigating(true);
       if (product.brand_id && product.model_id) {
         navigate(`/brand/${product.brand_id}/model/${product.model_id}/product/${product.id}`);
       } else if (product.brand_id) {
@@ -470,7 +469,7 @@ const MainApp = () => {
         navigate(`/product/${product.id}`);
       }
       window.scrollTo({ top: 0, behavior: 'auto' });
-      setIsNavigating(false);
+      setTimeout(() => setIsNavigating(false), 100);
     }, delay);
   }, [navigate]);
 
@@ -484,10 +483,9 @@ const MainApp = () => {
 
   const scrollToBrands = useCallback(() => {
     if (currentView !== 'home') {
-      setIsNavigating(true);
-      
-      const delay = isMobile ? 100 : 150;
+      const delay = isMobile ? 80 : 150;
       setTimeout(() => {
+        setIsNavigating(true);
         navigate('/');
         setSelectedBrand(null);
         setSelectedModel(null);
@@ -503,53 +501,59 @@ const MainApp = () => {
   }, [currentView, navigate]);
 
   const handleBrandClick = useCallback((brand) => {
-    setIsNavigating(true);
     setSelectedBrand(brand);
     setSelectedModel(null);
-    fetchModelsForBrand(brand.id);
     
-    const delay = isMobile ? 100 : 150; // أسرع على الموبايل
+    // على الموبايل نستنى شوية قبل ما نعمل fetch
+    if (isMobile) {
+      setTimeout(() => fetchModelsForBrand(brand.id), 200);
+    } else {
+      fetchModelsForBrand(brand.id);
+    }
+    
+    const delay = isMobile ? 80 : 150;
     setTimeout(() => {
+      setIsNavigating(true);
       navigate(`/brand/${brand.id}`);
       window.scrollTo({ top: 0, behavior: 'auto' });
-      setIsNavigating(false);
+      setTimeout(() => setIsNavigating(false), 100);
     }, delay);
   }, [navigate, fetchModelsForBrand]);
 
   const handleModelClick = useCallback((model) => {
-    setIsNavigating(true);
     setSelectedModel(model);
     
-    const delay = isMobile ? 100 : 150;
+    const delay = isMobile ? 80 : 150;
     setTimeout(() => {
+      setIsNavigating(true);
       navigate(`/brand/${selectedBrand.id}/model/${model.id}`);
       window.scrollTo({ top: 0, behavior: 'auto' });
-      setIsNavigating(false);
+      setTimeout(() => setIsNavigating(false), 100);
     }, delay);
   }, [navigate, selectedBrand]);
 
   const handleBackToHome = useCallback(() => {
-    setIsNavigating(true);
     setSelectedBrand(null);
     setSelectedModel(null);
     
-    const delay = isMobile ? 100 : 150;
+    const delay = isMobile ? 80 : 150;
     setTimeout(() => {
+      setIsNavigating(true);
       navigate('/');
       window.scrollTo({ top: 0, behavior: 'auto' });
-      setIsNavigating(false);
+      setTimeout(() => setIsNavigating(false), 100);
     }, delay);
   }, [navigate]);
 
   const handleBackToModels = useCallback(() => {
-    setIsNavigating(true);
     setSelectedModel(null);
     
-    const delay = isMobile ? 100 : 150;
+    const delay = isMobile ? 80 : 150;
     setTimeout(() => {
+      setIsNavigating(true);
       navigate(`/brand/${selectedBrand.id}`);
       window.scrollTo({ top: 0, behavior: 'auto' });
-      setIsNavigating(false);
+      setTimeout(() => setIsNavigating(false), 100);
     }, delay);
   }, [navigate, selectedBrand]);
 
@@ -618,10 +622,8 @@ const MainApp = () => {
       <div className="fixed inset-0 -z-10 bg-gradient-to-br from-gray-50 via-blue-50 to-gray-50" />
       
       {/* Navigation Overlay - أخف على الموبايل */}
-      {isNavigating && (
-        <div className={`fixed inset-0 z-[9999] pointer-events-none transition-opacity duration-150 ${
-          isMobile ? 'bg-black/5 backdrop-blur-[1px]' : 'bg-black/10 backdrop-blur-[2px]'
-        }`} />
+      {isNavigating && !isMobile && (
+        <div className="fixed inset-0 z-[9999] bg-black/10 backdrop-blur-[2px] pointer-events-none transition-opacity duration-150" />
       )}
       
       <div className="min-h-screen relative">
