@@ -459,20 +459,13 @@ const handleBrandClick = useCallback((brand) => {
   setSelectedBrand(brand);
   setSelectedModel(null);
   
-  // أنيميشن fade out للصفحة الحالية
-  document.body.style.opacity = '0';
-  document.body.style.transition = 'opacity 0.3s ease-out';
-  
+  // Smooth transition
   setTimeout(() => {
     navigate(`/brand/${brand.id}`);
     fetchModelsForBrand(brand.id);
-    window.scrollTo({ top: 0, behavior: 'auto' }); // instant scroll
-    
-    // أنيميشن fade in للصفحة الجديدة
-    requestAnimationFrame(() => {
-      document.body.style.opacity = '1';
-    });
-  }, 300);
+  }, 100); // delay بسيط جداً
+  
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 }, [navigate, fetchModelsForBrand]);
 
   const handleModelClick = useCallback((model) => {
