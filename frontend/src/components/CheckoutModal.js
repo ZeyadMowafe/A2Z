@@ -28,7 +28,10 @@ const CheckoutModal = ({ customerInfo = {}, setCustomerInfo, cart, getTotalPrice
         throw new Error('Order confirmation failed');
       }
     } catch (error) {
+      console.error('Order submission error:', error);
+      
       let errorMsg = 'An error occurred while submitting your order';
+      let errorDetails = '';
 
       if (error && error.message) {
         if (
@@ -37,14 +40,22 @@ const CheckoutModal = ({ customerInfo = {}, setCustomerInfo, cart, getTotalPrice
           !navigator.onLine
         ) {
           errorMsg = 'No internet connection. Please check your network and try again';
+          errorDetails = 'Network Error: Unable to reach the server';
         } else if (error.message.includes('500')) {
           errorMsg = 'Server error. Please try again later';
+          errorDetails = `Server Error: ${error.message}`;
         } else {
           errorMsg = error.message;
+          errorDetails = `Error Type: ${error.name || 'Unknown'}\nDetails: ${error.message}`;
         }
       }
 
-      setErrorMessage(errorMsg);
+      // Add stack trace if available (for debugging)
+      if (error.stack) {
+        errorDetails += `\n\nStack: ${error.stack.split('\n').slice(0, 3).join('\n')}`;
+      }
+
+      setErrorMessage(errorDetails || errorMsg);
       setShowResult('failure');
     } finally {
       setIsLoading(false);
@@ -148,7 +159,7 @@ const CheckoutModal = ({ customerInfo = {}, setCustomerInfo, cart, getTotalPrice
           <div className="p-8">
             <div className="bg-red-50 rounded-sm p-6 mb-6 border border-red-200">
               <p className="text-slate-900 text-center mb-2 font-light tracking-wide">ERROR DETAILS</p>
-              <p className="text-slate-600 text-sm text-center leading-relaxed font-light">{errorMessage || 'Unknown error occurred'}</p>
+              <p className="text-slate-600 text-sm text-center leading-relaxed font-light whitespace-pre-wrap">{errorMessage || 'Unknown error occurred'}</p>
             </div>
 
             <div className="bg-slate-50 rounded-sm p-5 mb-6 border border-slate-200">
