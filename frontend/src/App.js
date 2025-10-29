@@ -21,12 +21,21 @@ import AboutSection from './components/sections/AboutSection';
 import ContactSection from './components/sections/ContactSection';
 import AdminPanel from './components/AdminPanel';
 
-// Cache utility
+// Enhanced Cache utility مع تنظيف تلقائي
 const cache = {
   data: {},
   timestamps: {},
+  maxSize: 50, // حد أقصى 50 عنصر في الكاش
   
-  set(key, value, ttl = 300000) { // 5 minutes default
+  set(key, value, ttl = 600000) { // 10 دقايق default
+    // لو الكاش ممتلئ، نحذف أقدم عنصر
+    if (Object.keys(this.data).length >= this.maxSize) {
+      const oldestKey = Object.keys(this.timestamps).reduce((a, b) => 
+        this.timestamps[a] < this.timestamps[b] ? a : b
+      );
+      this.delete(oldestKey);
+    }
+    
     this.data[key] = value;
     this.timestamps[key] = Date.now() + ttl;
   },
@@ -47,8 +56,21 @@ const cache = {
   clear() {
     this.data = {};
     this.timestamps = {};
+  },
+  
+  // تنظيف الكاش القديم
+  cleanup() {
+    const now = Date.now();
+    Object.keys(this.timestamps).forEach(key => {
+      if (now >= this.timestamps[key]) {
+        this.delete(key);
+      }
+    });
   }
 };
+
+// تنظيف الكاش كل 5 دقايق
+setInterval(() => cache.cleanup(), 300000);
 
 // Lazy Loaded HomeView component
 const LazyHomeView = ({ brands, products, brandsRef, onBrandClick, onScrollToBrands }) => {
@@ -197,6 +219,7 @@ const MainApp = () => {
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [isNavigating, setIsNavigating] = useState(false);
   const aboutRef = useRef(null);
   const contactRef = useRef(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -208,46 +231,54 @@ const MainApp = () => {
   const { fetchData } = useApi();
   const cart = useCart();
 
-  // Cached fetch function
-  const fetchWithCache = useCallback(async (url, cacheKey, ttl = 300000) => {
+  // Enhanced cached fetch مع error handling أفضل
+  const fetchWithCache = useCallback(async (url, cacheKey, ttl = 600000) => {
     const cached = cache.get(cacheKey);
     if (cached) {
-      console.log(`[CACHE HIT] ${cacheKey}`);
+      console.log(`✅ [CACHE HIT] ${cacheKey}`);
       return cached;
     }
     
-    console.log(`[CACHE MISS] ${cacheKey}`);
-    const data = await fetchData(url);
-    cache.set(cacheKey, data, ttl);
-    return data;
+    console.log(`⬇️ [FETCHING] ${cacheKey}`);
+    try {
+      const data = await fetchData(url);
+      if (data) {
+        cache.set(cacheKey, data, ttl);
+        console.log(`💾 [CACHED] ${cacheKey}`);
+      }
+      return data;
+    } catch (error) {
+      console.error(`❌ [ERROR] ${cacheKey}:`, error);
+      throw error;
+    }
   }, [fetchData]);
 
-  // Fetch brands with cache
+  // Fetch brands with longer cache
   const fetchBrands = useCallback(async () => {
     try {
-      const data = await fetchWithCache('/brands', 'brands', 600000);
+      const data = await fetchWithCache('/brands', 'brands', 1800000); // 30 دقيقة
       setBrands(data);
     } catch (error) {
       console.error('Error fetching brands:', error);
     }
   }, [fetchWithCache]);
 
-  // Fetch categories with cache
+  // Fetch categories with longer cache
   const fetchCategories = useCallback(async () => {
     try {
-      const data = await fetchWithCache('/categories', 'categories', 600000);
+      const data = await fetchWithCache('/categories', 'categories', 1800000); // 30 دقيقة
       setCategories(data);
     } catch (error) {
       console.error('Error fetching categories:', error);
     }
   }, [fetchWithCache]);
 
-  // Fetch models for brand with cache
+  // Fetch models with cache
   const fetchModelsForBrand = useCallback(async (brandId) => {
     setLoading(true);
     try {
       const cacheKey = `models_${brandId}`;
-      const data = await fetchWithCache(`/brands/${brandId}/models`, cacheKey, 300000);
+      const data = await fetchWithCache(`/brands/${brandId}/models`, cacheKey, 900000); // 15 دقيقة
       setModels(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error fetching models:', error);
@@ -276,8 +307,8 @@ const MainApp = () => {
         url += `?${params.join('&')}`;
       }
       
-      const cacheKey = `products_${params.join('_')}`;
-      const data = await fetchWithCache(url, cacheKey, 180000);
+      const cacheKey = `products_${params.join('_') || 'all'}`;
+      const data = await fetchWithCache(url, cacheKey, 300000); // 5 دقايق
       setProducts(data);
     } catch (error) {
       console.error('Error fetching products:', error);
@@ -292,7 +323,7 @@ const MainApp = () => {
     setLoading(true);
     try {
       const cacheKey = `product_${id}`;
-      const data = await fetchWithCache(`/products/${id}`, cacheKey, 300000);
+      const data = await fetchWithCache(`/products/${id}`, cacheKey, 600000); // 10 دقايق
       setSelectedProduct(data);
     } catch (error) {
       console.error('Error fetching product details:', error);
@@ -381,8 +412,8 @@ const MainApp = () => {
     searchTimeoutRef.current = setTimeout(async () => {
       setLoading(true);
       try {
-        const cacheKey = `search_${query}`;
-        const data = await fetchWithCache(`/products?search=${encodeURIComponent(query)}`, cacheKey, 120000);
+        const cacheKey = `search_${query.toLowerCase()}`;
+        const data = await fetchWithCache(`/products?search=${encodeURIComponent(query)}`, cacheKey, 180000); // 3 دقايق
         setSearchResults(data);
       } catch (error) {
         console.error('Error searching products:', error);
@@ -423,14 +454,19 @@ const MainApp = () => {
   }, []);
 
   const handleViewDetails = useCallback((product) => {
-    if (product.brand_id && product.model_id) {
-      navigate(`/brand/${product.brand_id}/model/${product.model_id}/product/${product.id}`);
-    } else if (product.brand_id) {
-      navigate(`/brand/${product.brand_id}/product/${product.id}`);
-    } else {
-      navigate(`/product/${product.id}`);
-    }
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setIsNavigating(true);
+    
+    setTimeout(() => {
+      if (product.brand_id && product.model_id) {
+        navigate(`/brand/${product.brand_id}/model/${product.model_id}/product/${product.id}`);
+      } else if (product.brand_id) {
+        navigate(`/brand/${product.brand_id}/product/${product.id}`);
+      } else {
+        navigate(`/product/${product.id}`);
+      }
+      window.scrollTo({ top: 0, behavior: 'auto' });
+      setIsNavigating(false);
+    }, 150);
   }, [navigate]);
 
   const scrollToAbout = useCallback(() => {
@@ -443,43 +479,68 @@ const MainApp = () => {
 
   const scrollToBrands = useCallback(() => {
     if (currentView !== 'home') {
-      navigate('/');
-      setSelectedBrand(null);
-      setSelectedModel(null);
+      setIsNavigating(true);
       
       setTimeout(() => {
-        brandsRef.current?.scrollIntoView({ behavior: 'smooth' });
-      }, 100);
+        navigate('/');
+        setSelectedBrand(null);
+        setSelectedModel(null);
+        
+        setTimeout(() => {
+          brandsRef.current?.scrollIntoView({ behavior: 'smooth' });
+          setIsNavigating(false);
+        }, 200);
+      }, 150);
     } else {
       brandsRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
   }, [currentView, navigate]);
 
   const handleBrandClick = useCallback((brand) => {
+    setIsNavigating(true);
     setSelectedBrand(brand);
     setSelectedModel(null);
     fetchModelsForBrand(brand.id);
-    navigate(`/brand/${brand.id}`);
-    window.scrollTo({ top: 0, behavior: 'auto' });
+    
+    setTimeout(() => {
+      navigate(`/brand/${brand.id}`);
+      window.scrollTo({ top: 0, behavior: 'auto' });
+      setIsNavigating(false);
+    }, 150);
   }, [navigate, fetchModelsForBrand]);
 
   const handleModelClick = useCallback((model) => {
+    setIsNavigating(true);
     setSelectedModel(model);
-    navigate(`/brand/${selectedBrand.id}/model/${model.id}`);
-    window.scrollTo({ top: 0, behavior: 'auto' });
+    
+    setTimeout(() => {
+      navigate(`/brand/${selectedBrand.id}/model/${model.id}`);
+      window.scrollTo({ top: 0, behavior: 'auto' });
+      setIsNavigating(false);
+    }, 150);
   }, [navigate, selectedBrand]);
 
   const handleBackToHome = useCallback(() => {
+    setIsNavigating(true);
     setSelectedBrand(null);
     setSelectedModel(null);
-    navigate('/');
-    window.scrollTo({ top: 0, behavior: 'auto' });
+    
+    setTimeout(() => {
+      navigate('/');
+      window.scrollTo({ top: 0, behavior: 'auto' });
+      setIsNavigating(false);
+    }, 150);
   }, [navigate]);
 
   const handleBackToModels = useCallback(() => {
+    setIsNavigating(true);
     setSelectedModel(null);
-    navigate(`/brand/${selectedBrand.id}`);
-    window.scrollTo({ top: 0, behavior: 'auto' });
+    
+    setTimeout(() => {
+      navigate(`/brand/${selectedBrand.id}`);
+      window.scrollTo({ top: 0, behavior: 'auto' });
+      setIsNavigating(false);
+    }, 150);
   }, [navigate, selectedBrand]);
 
   const handleProceedToCheckout = useCallback(() => {
@@ -545,6 +606,11 @@ const MainApp = () => {
     <>
       {/* Fixed Background - مش هتتعمل re-render تاني */}
       <div className="fixed inset-0 -z-10 bg-gradient-to-br from-gray-50 via-blue-50 to-gray-50" />
+      
+      {/* Navigation Overlay */}
+      {isNavigating && (
+        <div className="fixed inset-0 z-[9999] bg-black/10 backdrop-blur-[2px] pointer-events-none transition-opacity duration-150" />
+      )}
       
       <div className="min-h-screen relative">
         {orderSuccess && <SuccessNotification onClose={() => setOrderSuccess(false)} />}
