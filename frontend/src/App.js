@@ -230,6 +230,14 @@ const MainApp = () => {
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
+  
+  // Cache للمحتوى السابق
+  const [previousContent, setPreviousContent] = useState({
+    view: null,
+    brand: null,
+    model: null,
+    product: null
+  });
 
   const brandsRef = useRef(null);
   const { fetchData } = useApi();
@@ -370,6 +378,18 @@ const MainApp = () => {
       setSelectedModel(null);
     }
   }, [modelId, models, selectedBrand]);
+
+  // حفظ المحتوى السابق
+  useEffect(() => {
+    if (currentView && selectedBrand) {
+      setPreviousContent({
+        view: currentView,
+        brand: selectedBrand,
+        model: selectedModel,
+        product: selectedProduct
+      });
+    }
+  }, [currentView, selectedBrand, selectedModel, selectedProduct]);
 
   useEffect(() => {
     if (productId && selectedProduct) {
@@ -677,62 +697,35 @@ const MainApp = () => {
             )}
 
             {currentView === 'models' && (
-              selectedBrand ? (
-                <LazyModelsView
-                  selectedBrand={selectedBrand}
-                  models={models}
-                  loading={loading}
-                  onModelClick={handleModelClick}
-                />
-              ) : (
-                <div className="min-h-screen flex items-center justify-center">
-                  <div className="text-center">
-                    <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
-                    <p className="text-gray-600">Loading...</p>
-                  </div>
-                </div>
-              )
+              <LazyModelsView
+                selectedBrand={selectedBrand || previousContent.brand}
+                models={models}
+                loading={loading}
+                onModelClick={handleModelClick}
+              />
             )}
 
             {currentView === 'productDetails' && (
-              selectedProduct ? (
-                <LazyProductDetailsView 
-                  product={selectedProduct}
-                  loading={loading}
-                  onAddToCart={cart.addToCart}
-                  onOpenCart={() => setShowCart(true)}
-                  onBack={() => navigate(-1)}
-                />
-              ) : (
-                <div className="min-h-screen flex items-center justify-center">
-                  <div className="text-center">
-                    <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
-                    <p className="text-gray-600">Loading product...</p>
-                  </div>
-                </div>
-              )
+              <LazyProductDetailsView 
+                product={selectedProduct || previousContent.product}
+                loading={loading}
+                onAddToCart={cart.addToCart}
+                onOpenCart={() => setShowCart(true)}
+                onBack={() => navigate(-1)}
+              />
             )}
 
             {currentView === 'parts' && (
-              selectedBrand && selectedModel ? (
-                <LazyPartsView
-                  selectedBrand={selectedBrand}
-                  selectedModel={selectedModel}
-                  products={products}
-                  categories={categories}
-                  productsByCategory={productsByCategory}
-                  loading={loading}
-                  onAddToCart={cart.addToCart}
-                  onViewDetails={handleViewDetails}
-                />
-              ) : (
-                <div className="min-h-screen flex items-center justify-center">
-                  <div className="text-center">
-                    <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
-                    <p className="text-gray-600">Loading parts...</p>
-                  </div>
-                </div>
-              )
+              <LazyPartsView
+                selectedBrand={selectedBrand || previousContent.brand}
+                selectedModel={selectedModel || previousContent.model}
+                products={products}
+                categories={categories}
+                productsByCategory={productsByCategory}
+                loading={loading}
+                onAddToCart={cart.addToCart}
+                onViewDetails={handleViewDetails}
+              />
             )}
 
             {currentView === 'home' && (
