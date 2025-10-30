@@ -205,6 +205,7 @@ const MainApp = () => {
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [modelsLoading, setModelsLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [selectedProduct, setSelectedProduct] = useState(null);
@@ -254,14 +255,14 @@ const MainApp = () => {
   }, [fetchWithCache]);
 
   const fetchModelsForBrand = useCallback(async (brandId) => {
-    setLoading(true);
+    setModelsLoading(true);
     const data = await fetchWithCache(`/brands/${brandId}/models`, `models_${brandId}`, 1800000);
     setModels(Array.isArray(data) ? data : []);
-    setLoading(false);
+    setModelsLoading(false);
   }, [fetchWithCache]);
 
   const fetchProducts = useCallback(async () => {
-    if (!selectedBrand) return;
+    if (!selectedBrand || !selectedModel) return;
     
     setLoading(true);
     let url = '/products';
@@ -291,8 +292,11 @@ const MainApp = () => {
   }, []);
 
   useEffect(() => {
-    if (selectedBrand) fetchProducts();
-  }, [selectedBrand, selectedModel]);
+    // Only fetch products when in parts view (when both brand and model are selected)
+    if (selectedBrand && selectedModel && currentView === 'parts') {
+      fetchProducts();
+    }
+  }, [selectedBrand, selectedModel, currentView]);
 
   // URL sync
   useEffect(() => {
@@ -561,7 +565,7 @@ const MainApp = () => {
           <LazyModelsView
             selectedBrand={selectedBrand}
             models={models}
-            loading={loading}
+            loading={modelsLoading}
             onModelClick={handleModelClick}
           />
         )}
