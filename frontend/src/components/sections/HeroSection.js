@@ -181,7 +181,7 @@ const HeroContent = ({ onScrollToBrands, brandsCount }) => (
         {/* Image Container */}
         <div className="relative overflow-hidden group">
           <img 
-            src="https://i.pinimg.com/1200x/d6/1f/43/d61f4330e2e7ca3968f424b98afbb8ed.jpg" 
+            src="https://i.pinimg.com/1200x/34/02/ed/3402ed56a5c0392a0165d4701f461c08.jpg" 
             alt="Premium Automobile"
             className="w-full h-auto transform group-hover:scale-110 transition-transform duration-[2000ms] ease-out"
           />
