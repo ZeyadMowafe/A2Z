@@ -6,7 +6,7 @@ const HeroSection = ({ onScrollToBrands, brandsCount }) => (
     {/* Premium Background */}
     <div className="absolute inset-0">
       <img 
-        src="https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?w=1920&h=1080&fit=crop&q=80" 
+        src="https://i.pinimg.com/1200x/ae/fe/00/aefe00cf3ece9f7e0d0366a340463945.jpg" 
         alt="Car Background"
         className="w-full h-full object-cover opacity-30 md:opacity-40 scale-110 animate-slow-zoom"
       />
