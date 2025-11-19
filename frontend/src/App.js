@@ -1,23 +1,36 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense } from 'react';
 import { useParams, useNavigate, useLocation, Routes, Route } from 'react-router-dom';
 import { MessageCircle } from 'lucide-react';
+
+// ✅ Eager imports للأساسيات فقط
 import useApi from './hooks/useApi';
 import useCart from './hooks/useCart';
-import useLazyLoad from './hooks/useLazyLoad'; 
 import Header from './components/common/Header';
 import Footer from './components/common/Footer';
-import CartModal from './components/common/CartModal';
-import SuccessNotification from './components/common/SuccessNotification';
 import BackButton from './components/common/BackButton';
-import CheckoutModal from './components/CheckoutModal';
-import HeroSection from './components/sections/HeroSection';
-import BrandsSection from './components/sections/BrandsSection';
-import ModelsView from './components/sections/ModelsView';
-import PartsView from './components/sections/PartsView';
-import ProductDetailsView from './components/sections/ProductDetailsView';
-import AboutSection from './components/sections/AboutSection';
-import ContactSection from './components/sections/ContactSection';
-import AdminPanel from './components/AdminPanel';
+
+// ✅ Lazy load باقي المكونات
+const HeroSection = lazy(() => import('./components/sections/HeroSection'));
+const BrandsSection = lazy(() => import('./components/sections/BrandsSection'));
+const ModelsView = lazy(() => import('./components/sections/ModelsView'));
+const PartsView = lazy(() => import('./components/sections/PartsView'));
+const ProductDetailsView = lazy(() => import('./components/sections/ProductDetailsView'));
+const AboutSection = lazy(() => import('./components/sections/AboutSection'));
+const ContactSection = lazy(() => import('./components/sections/ContactSection'));
+const CartModal = lazy(() => import('./components/common/CartModal'));
+const CheckoutModal = lazy(() => import('./components/CheckoutModal'));
+const SuccessNotification = lazy(() => import('./components/common/SuccessNotification'));
+const AdminPanel = lazy(() => import('./components/AdminPanel'));
+
+// ✅ Loading Component محسّن
+const PageLoader = () => (
+  <div className="min-h-screen flex items-center justify-center bg-slate-900">
+    <div className="text-center">
+      <div className="w-16 h-16 border-4 border-slate-700 border-t-blue-500 rounded-full animate-spin mx-auto mb-4"></div>
+      <p className="text-slate-400 text-sm">Loading...</p>
+    </div>
+  </div>
+);
 
 // Detect mobile device
 const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
@@ -49,136 +62,6 @@ const cache = {
     this.timestamps.delete(key);
   }
 };
-
-// Optimized Lazy components مع placeholders
-const LazyHomeView = React.memo(({ brands, products, brandsRef, onBrandClick, onScrollToBrands }) => {
-  const [heroRef, heroVisible] = useLazyLoad({ threshold: 0, rootMargin: '100px' });
-  const [brandsRefLazy, brandsVisible] = useLazyLoad({ threshold: 0, rootMargin: '150px' });
-
-  return (
-    <>
-      <div ref={heroRef}>
-        {heroVisible ? (
-          <HeroSection onScrollToBrands={onScrollToBrands} brandsCount={brands.length} />
-        ) : (
-          <div className="h-screen bg-gradient-to-br from-blue-600 to-blue-800" />
-        )}
-      </div>
-      
-      <div ref={brandsRefLazy}>
-        {brandsVisible ? (
-          <BrandsSection 
-            brands={brands} 
-            brandsRef={brandsRef} 
-            onBrandClick={onBrandClick} 
-            productsCount={products.length} 
-          />
-        ) : (
-          <div className="h-[50vh] bg-white" />
-        )}
-      </div>
-    </>
-  );
-});
-
-const LazyModelsView = React.memo(({ selectedBrand, models, loading, onModelClick }) => {
-  const [ref, visible] = useLazyLoad({ threshold: 0, rootMargin: '100px' });
-
-  return (
-    <div ref={ref}>
-      {visible ? (
-        <ModelsView
-          selectedBrand={selectedBrand}
-          models={models}
-          loading={loading}
-          onModelClick={onModelClick}
-        />
-      ) : (
-        <div className="h-screen bg-gray-50" />
-      )}
-    </div>
-  );
-});
-
-const LazyPartsView = React.memo(({ 
-  selectedBrand, 
-  selectedModel, 
-  products, 
-  categories, 
-  productsByCategory, 
-  loading, 
-  onAddToCart, 
-  onViewDetails 
-}) => {
-  const [ref, visible] = useLazyLoad({ threshold: 0, rootMargin: '100px' });
-
-  return (
-    <div ref={ref}>
-      {visible ? (
-        <PartsView
-          selectedBrand={selectedBrand}
-          selectedModel={selectedModel}
-          products={products}
-          categories={categories}
-          productsByCategory={productsByCategory}
-          loading={loading}
-          onAddToCart={onAddToCart}
-          onViewDetails={onViewDetails}
-        />
-      ) : (
-        <div className="h-screen bg-gray-50" />
-      )}
-    </div>
-  );
-});
-
-const LazyProductDetailsView = React.memo(({ product, loading, onAddToCart, onOpenCart, onBack }) => {
-  const [ref, visible] = useLazyLoad({ threshold: 0, rootMargin: '100px' });
-
-  return (
-    <div ref={ref}>
-      {visible ? (
-        <ProductDetailsView 
-          product={product}
-          loading={loading}
-          onAddToCart={onAddToCart}
-          onOpenCart={onOpenCart}
-          onBack={onBack}
-        />
-      ) : (
-        <div className="h-screen bg-gray-50" />
-      )}
-    </div>
-  );
-});
-
-const LazyAboutSection = React.memo(({ aboutRef }) => {
-  const [ref, visible] = useLazyLoad({ threshold: 0, rootMargin: '200px' });
-
-  return (
-    <div ref={ref}>
-      {visible ? (
-        <AboutSection aboutRef={aboutRef} />
-      ) : (
-        <div className="h-[40vh]" />
-      )}
-    </div>
-  );
-});
-
-const LazyContactSection = React.memo(({ contactRef }) => {
-  const [ref, visible] = useLazyLoad({ threshold: 0, rootMargin: '200px' });
-
-  return (
-    <div ref={ref}>
-      {visible ? (
-        <ContactSection contactRef={contactRef} />
-      ) : (
-        <div className="h-[40vh]" />
-      )}
-    </div>
-  );
-});
 
 const MainApp = () => {
   const { brandId, modelId, productId } = useParams();
@@ -220,12 +103,11 @@ const MainApp = () => {
   const { fetchData } = useApi();
   const cart = useCart();
 
-  // Optimized fetch with queue
+  // ✅ Optimized fetch with better caching
   const fetchWithCache = useCallback(async (url, cacheKey, ttl = 600000) => {
     const cached = cache.get(cacheKey);
     if (cached) return cached;
     
-    // Prevent duplicate requests
     while (isFetchingRef.current) {
       await new Promise(resolve => setTimeout(resolve, 50));
     }
@@ -292,7 +174,6 @@ const MainApp = () => {
   }, []);
 
   useEffect(() => {
-    // Only fetch products when in parts view (when both brand and model are selected)
     if (selectedBrand && selectedModel && currentView === 'parts') {
       fetchProducts();
     }
@@ -353,25 +234,16 @@ const MainApp = () => {
     setSearchResults([]);
   }, []);
 
-  // SUPER SMOOTH NAVIGATION - الحل النهائي
+  // ✅ OPTIMIZED Navigation - Faster
   const smoothNavigate = useCallback((path, setup) => {
-    // 1. Setup state فوراً
     if (setup) setup();
-    
-    // 2. Add transition class
     setIsTransitioning(true);
     
-    // 3. Navigate immediately
-    navigate(path);
-    
-    // 4. Scroll to top using RAF for smoothness
     requestAnimationFrame(() => {
+      navigate(path);
       window.scrollTo({ top: 0, behavior: 'instant' });
       
-      // 5. Remove transition after a frame
-      requestAnimationFrame(() => {
-        setIsTransitioning(false);
-      });
+      setTimeout(() => setIsTransitioning(false), 150);
     });
   }, [navigate]);
 
@@ -499,7 +371,6 @@ const MainApp = () => {
     }, {});
   }, [categories, products]);
 
-  // Cleanup
   useEffect(() => {
     return () => {
       if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
@@ -508,13 +379,15 @@ const MainApp = () => {
 
   return (
     <div className="min-h-screen relative bg-gradient-to-br from-gray-50 via-blue-50 to-gray-50">
-      {/* Smooth transition overlay */}
       {isTransitioning && (
-        <div className="fixed inset-0 bg-white/30 z-[60] pointer-events-none transition-opacity duration-150" 
-             style={{ opacity: isTransitioning ? 1 : 0 }} />
+        <div className="fixed inset-0 bg-white/20 z-[60] pointer-events-none transition-opacity duration-150" />
       )}
       
-      {orderSuccess && <SuccessNotification onClose={() => setOrderSuccess(false)} />}
+      {orderSuccess && (
+        <Suspense fallback={null}>
+          <SuccessNotification onClose={() => setOrderSuccess(false)} />
+        </Suspense>
+      )}
       
       <Header
         cartCount={cart.cartCount}
@@ -532,74 +405,72 @@ const MainApp = () => {
         onViewDetails={handleViewDetails}
       />
 
-      {/* Content wrapper مع fade transition سلسة */}
-      <div 
-        key={location.pathname} 
-        className="min-h-screen transition-opacity duration-200"
-        style={{ opacity: isTransitioning ? 0.7 : 1 }}
-      >
-        {currentView !== 'home' && (
-          <BackButton 
-            onClick={
-              currentView === 'productDetails' ? () => navigate(-1) : 
-              currentView === 'parts' ? handleBackToModels : 
-              handleBackToHome
-            } 
-            currentView={currentView}
-            selectedBrand={selectedBrand}
-            selectedModel={selectedModel}
-          />
-        )}
+      <Suspense fallback={<PageLoader />}>
+        <div 
+          key={location.pathname} 
+          className="min-h-screen transition-opacity duration-200"
+          style={{ opacity: isTransitioning ? 0.7 : 1 }}
+        >
+          {currentView !== 'home' && (
+            <BackButton 
+              onClick={
+                currentView === 'productDetails' ? () => navigate(-1) : 
+                currentView === 'parts' ? handleBackToModels : 
+                handleBackToHome
+              } 
+              currentView={currentView}
+              selectedBrand={selectedBrand}
+              selectedModel={selectedModel}
+            />
+          )}
 
-        {currentView === 'home' && (
-          <LazyHomeView 
-            brands={brands}
-            products={products}
-            brandsRef={brandsRef}
-            onBrandClick={handleBrandClick}
-            onScrollToBrands={scrollToBrands}
-          />
-        )}
+          {currentView === 'home' && (
+            <>
+              <HeroSection onScrollToBrands={scrollToBrands} brandsCount={brands.length} />
+              <BrandsSection 
+                brands={brands}
+                brandsRef={brandsRef}
+                onBrandClick={handleBrandClick}
+                productsCount={products.length}
+              />
+              <AboutSection aboutRef={aboutRef} />
+              <ContactSection contactRef={contactRef} />
+            </>
+          )}
 
-        {currentView === 'models' && selectedBrand && (
-          <LazyModelsView
-            selectedBrand={selectedBrand}
-            models={models}
-            loading={modelsLoading}
-            onModelClick={handleModelClick}
-          />
-        )}
+          {currentView === 'models' && selectedBrand && (
+            <ModelsView
+              selectedBrand={selectedBrand}
+              models={models}
+              loading={modelsLoading}
+              onModelClick={handleModelClick}
+            />
+          )}
 
-        {currentView === 'productDetails' && selectedProduct && (
-          <LazyProductDetailsView 
-            product={selectedProduct}
-            loading={loading}
-            onAddToCart={cart.addToCart}
-            onOpenCart={() => setShowCart(true)}
-            onBack={() => navigate(-1)}
-          />
-        )}
+          {currentView === 'productDetails' && selectedProduct && (
+            <ProductDetailsView 
+              product={selectedProduct}
+              loading={loading}
+              onAddToCart={cart.addToCart}
+              onOpenCart={() => setShowCart(true)}
+              onBack={() => navigate(-1)}
+            />
+          )}
 
-        {currentView === 'parts' && selectedBrand && selectedModel && (
-          <LazyPartsView
-            selectedBrand={selectedBrand}
-            selectedModel={selectedModel}
-            products={products}
-            categories={categories}
-            productsByCategory={productsByCategory}
-            loading={loading}
-            onAddToCart={cart.addToCart}
-            onViewDetails={handleViewDetails}
-          />
-        )}
-
-        {currentView === 'home' && (
-          <>
-            <LazyAboutSection aboutRef={aboutRef} />
-            <LazyContactSection contactRef={contactRef} />
-          </>
-        )}
-      </div>
+          {currentView === 'parts' && selectedBrand && selectedModel && (
+            <PartsView
+              selectedBrand={selectedBrand}
+              selectedModel={selectedModel}
+              products={products}
+              categories={categories}
+              productsByCategory={productsByCategory}
+              loading={loading}
+              onAddToCart={cart.addToCart}
+              onViewDetails={handleViewDetails}
+            />
+          )}
+        </div>
+      </Suspense>
 
       <Footer />
 
@@ -612,25 +483,29 @@ const MainApp = () => {
       </button>
 
       {showCart && (
-        <CartModal
-          cart={cart.cart}
-          updateQuantity={cart.updateQuantity}
-          removeFromCart={cart.removeFromCart}
-          getTotalPrice={cart.getTotalPrice}
-          onClose={() => setShowCart(false)}
-          onCheckout={handleProceedToCheckout}
-        />
+        <Suspense fallback={null}>
+          <CartModal
+            cart={cart.cart}
+            updateQuantity={cart.updateQuantity}
+            removeFromCart={cart.removeFromCart}
+            getTotalPrice={cart.getTotalPrice}
+            onClose={() => setShowCart(false)}
+            onCheckout={handleProceedToCheckout}
+          />
+        </Suspense>
       )}
 
       {showCheckout && (
-        <CheckoutModal
-          customerInfo={customerInfo}
-          setCustomerInfo={setCustomerInfo}
-          cart={cart.cart}
-          getTotalPrice={cart.getTotalPrice}
-          onClose={() => setShowCheckout(false)}
-          onSubmit={handleCheckoutComplete}
-        />
+        <Suspense fallback={null}>
+          <CheckoutModal
+            customerInfo={customerInfo}
+            setCustomerInfo={setCustomerInfo}
+            cart={cart.cart}
+            getTotalPrice={cart.getTotalPrice}
+            onClose={() => setShowCheckout(false)}
+            onSubmit={handleCheckoutComplete}
+          />
+        </Suspense>
       )}
     </div>
   );
@@ -644,7 +519,11 @@ const App = () => (
     <Route path="/brand/:brandId/model/:modelId/product/:productId" element={<MainApp />} />
     <Route path="/brand/:brandId/product/:productId" element={<MainApp />} />
     <Route path="/product/:productId" element={<MainApp />} />
-    <Route path="/admin" element={<AdminPanel />} />
+    <Route path="/admin" element={
+      <Suspense fallback={<PageLoader />}>
+        <AdminPanel />
+      </Suspense>
+    } />
   </Routes>
 );
 
