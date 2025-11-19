@@ -6,7 +6,7 @@ module.exports = {
   theme: {
     extend: {
       fontFamily: {
-        tajawal: ["Tajawal", "sans-serif"],
+        tajawal: ["Cairo", "sans-serif"],
       },
       animation: {
         'slide-in-right': 'slide-in-right 0.5s ease-out',
