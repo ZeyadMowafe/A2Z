@@ -22,12 +22,12 @@ const CheckoutModal = lazy(() => import('./components/CheckoutModal'));
 const SuccessNotification = lazy(() => import('./components/common/SuccessNotification'));
 const AdminPanel = lazy(() => import('./components/AdminPanel'));
 
-// ✅ Loading Component محسّن
+// ✅ Minimal Loading Component
 const PageLoader = () => (
   <div className="min-h-screen flex items-center justify-center bg-slate-900">
     <div className="text-center">
-      <div className="w-16 h-16 border-4 border-slate-700 border-t-blue-500 rounded-full animate-spin mx-auto mb-4"></div>
-      <p className="text-slate-400 text-sm">Loading...</p>
+      <div className="w-12 h-12 border-2 border-slate-700 border-t-blue-500 rounded-full animate-spin mx-auto mb-3"></div>
+      <p className="text-slate-400 text-xs">Loading...</p>
     </div>
   </div>
 );
@@ -35,11 +35,11 @@ const PageLoader = () => (
 // Detect mobile device
 const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
-// Enhanced Cache utility
+// ✅ Optimized Cache with lower limits for mobile
 const cache = {
   data: new Map(),
   timestamps: new Map(),
-  maxSize: isMobile ? 20 : 40,
+  maxSize: isMobile ? 15 : 30,
   
   set(key, value, ttl = 600000) {
     if (this.data.size >= this.maxSize) {
@@ -103,11 +103,12 @@ const MainApp = () => {
   const { fetchData } = useApi();
   const cart = useCart();
 
-  // ✅ Optimized fetch with better caching
+  // ✅ Optimized fetch with debouncing
   const fetchWithCache = useCallback(async (url, cacheKey, ttl = 600000) => {
     const cached = cache.get(cacheKey);
     if (cached) return cached;
     
+    // Prevent duplicate requests
     while (isFetchingRef.current) {
       await new Promise(resolve => setTimeout(resolve, 50));
     }
@@ -167,17 +168,17 @@ const MainApp = () => {
     setLoading(false);
   }, [fetchWithCache]);
 
-  // Initial fetch
+  // Initial fetch - Only critical data
   useEffect(() => {
     fetchBrands();
     fetchCategories();
-  }, []);
+  }, [fetchBrands, fetchCategories]);
 
   useEffect(() => {
     if (selectedBrand && selectedModel && currentView === 'parts') {
       fetchProducts();
     }
-  }, [selectedBrand, selectedModel, currentView]);
+  }, [selectedBrand, selectedModel, currentView, fetchProducts]);
 
   // URL sync
   useEffect(() => {
@@ -191,7 +192,7 @@ const MainApp = () => {
       setSelectedBrand(null);
       setSelectedModel(null);
     }
-  }, [brandId, brands]);
+  }, [brandId, brands, selectedBrand, fetchModelsForBrand]);
   
   useEffect(() => {
     if (modelId && models.length) {
@@ -202,13 +203,13 @@ const MainApp = () => {
     } else if (!modelId && selectedModel) {
       setSelectedModel(null);
     }
-  }, [modelId, models]);
+  }, [modelId, models, selectedModel]);
 
   useEffect(() => {
     if (productId) fetchProductDetails(productId);
-  }, [productId]);
+  }, [productId, fetchProductDetails]);
 
-  // Search
+  // ✅ Debounced Search
   const handleSearch = useCallback(async (query) => {
     setSearchQuery(query);
     
@@ -234,17 +235,11 @@ const MainApp = () => {
     setSearchResults([]);
   }, []);
 
-  // ✅ OPTIMIZED Navigation - Faster
+  // ✅ Instant Navigation - No transition delay
   const smoothNavigate = useCallback((path, setup) => {
     if (setup) setup();
-    setIsTransitioning(true);
-    
-    requestAnimationFrame(() => {
-      navigate(path);
-      window.scrollTo({ top: 0, behavior: 'instant' });
-      
-      setTimeout(() => setIsTransitioning(false), 150);
-    });
+    navigate(path);
+    window.scrollTo({ top: 0, behavior: 'instant' });
   }, [navigate]);
 
   const handleBrandClick = useCallback((brand) => {
@@ -308,8 +303,8 @@ const MainApp = () => {
     ref?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, []);
 
-  const scrollToAbout = useCallback(() => smoothScroll(aboutRef), []);
-  const scrollToContact = useCallback(() => smoothScroll(contactRef), []);
+  const scrollToAbout = useCallback(() => smoothScroll(aboutRef), [smoothScroll, aboutRef]);
+  const scrollToContact = useCallback(() => smoothScroll(contactRef), [smoothScroll, contactRef]);
   
   const scrollToBrands = useCallback(() => {
     if (currentView !== 'home') {
@@ -318,7 +313,7 @@ const MainApp = () => {
     } else {
       smoothScroll(brandsRef);
     }
-  }, [currentView, handleBackToHome]);
+  }, [currentView, handleBackToHome, smoothScroll, brandsRef]);
 
   // Checkout
   const handleProceedToCheckout = useCallback(() => {
@@ -379,10 +374,6 @@ const MainApp = () => {
 
   return (
     <div className="min-h-screen relative bg-gradient-to-br from-gray-50 via-blue-50 to-gray-50">
-      {isTransitioning && (
-        <div className="fixed inset-0 bg-white/20 z-[60] pointer-events-none transition-opacity duration-150" />
-      )}
-      
       {orderSuccess && (
         <Suspense fallback={null}>
           <SuccessNotification onClose={() => setOrderSuccess(false)} />
@@ -406,11 +397,7 @@ const MainApp = () => {
       />
 
       <Suspense fallback={<PageLoader />}>
-        <div 
-          key={location.pathname} 
-          className="min-h-screen transition-opacity duration-200"
-          style={{ opacity: isTransitioning ? 0.7 : 1 }}
-        >
+        <div className="min-h-screen">
           {currentView !== 'home' && (
             <BackButton 
               onClick={
@@ -474,12 +461,13 @@ const MainApp = () => {
 
       <Footer />
 
+      {/* WhatsApp Button - Simplified */}
       <button
         onClick={handleWhatsAppClick}
-        className="fixed bottom-6 left-6 z-50 bg-gradient-to-br from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white rounded-full p-4 shadow-2xl transform hover:scale-110 active:scale-95 transition-transform duration-200"
+        className="fixed bottom-6 left-6 z-50 bg-green-500 hover:bg-green-600 text-white rounded-full p-3 md:p-4 shadow-xl transition-transform duration-200 hover:scale-110 active:scale-95"
         aria-label="WhatsApp"
       >
-        <MessageCircle className="w-7 h-7" />
+        <MessageCircle className="w-6 h-6 md:w-7 md:h-7" />
       </button>
 
       {showCart && (
