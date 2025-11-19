@@ -5,13 +5,25 @@
     <link rel="icon" href="%PUBLIC_URL%/image_logo.jpg" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#000000" />
-    <meta
-      name="description"
-      content="AtoZ E-commerce Platform"
+    
+    <!-- ✅ DNS Prefetch للصور -->
+    <link rel="dns-prefetch" href="https://i.pinimg.com" />
+    
+    <!-- ✅ Preconnect -->
+    <link rel="preconnect" href="https://i.pinimg.com" crossorigin />
+    
+    <!-- ✅ Preload Critical Image -->
+    <link 
+      rel="preload" 
+      as="image" 
+      href="https://i.pinimg.com/1200x/ae/fe/00/aefe00cf3ece9f7e0d0366a340463945.jpg"
+      fetchpriority="high"
     />
+    
+    <meta name="description" content="AtoZ E-commerce Platform" />
     <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
     <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
-    <title>AtoZ E-commerce </title>
+    <title>AtoZ E-commerce</title>
   </head>
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>
