@@ -71,15 +71,15 @@ const Header = ({
     <>
       <header className={`fixed w-full z-50 transition-all duration-700 ${
         isScrolled 
-          ? 'bg-zinc-900/98 backdrop-blur-xl border-b border-zinc-800 py-3 md:py-4' 
-          : 'bg-black/80 backdrop-blur-sm border-b border-zinc-900/50 py-4 md:py-6'
+          ? 'bg-zinc-900/98 backdrop-blur-xl border-b border-zinc-800 py-4' 
+          : 'bg-black/80 backdrop-blur-sm border-b border-zinc-900/50 py-6'
       }`}>
         {/* Top Accent Line */}
         <div className={`absolute top-0 left-0 h-[1px] bg-gradient-to-r from-transparent via-blue-500 to-transparent transition-opacity duration-700 ${
           isScrolled ? 'opacity-100 w-full' : 'opacity-0 w-0'
         }`}></div>
 
-        <nav className="container mx-auto px-4 sm:px-6 lg:px-12 flex justify-between items-center">
+        <nav className="container mx-auto px-6 lg:px-12 flex justify-between items-center">
           {/* Logo */}
           <button 
             onClick={scrollToHome}
@@ -91,19 +91,19 @@ const Header = ({
             >
               {/* Logo Container with Border Effect */}
               <div className="relative">
-                <div className="absolute inset-0 border border-zinc-800 group-hover:border-blue-500/50 transition-all duration-500 -m-1.5 md:-m-2"></div>
-                <div className="w-20 h-12 md:w-24 md:h-14 flex items-center justify-center overflow-hidden relative">
+                <div className="absolute inset-0 border border-zinc-800 group-hover:border-blue-500/50 transition-all duration-500 -m-2"></div>
+                <div className="w-24 h-14 flex items-center justify-center overflow-hidden relative">
                   <img
                     src="/logo.png"
                     alt="AtoZ Logo"
-                    className="h-16 md:h-20 w-auto transform scale-[1.7] transition-all duration-500 group-hover:scale-[1.8] brightness-0 invert group-hover:brightness-100 group-hover:invert-0"
+                    className="h-20 w-auto transform scale-[1.7] transition-all duration-500 group-hover:scale-[1.8] brightness-0 invert group-hover:brightness-100 group-hover:invert-0"
                   />
                 </div>
               </div>
             </Link>
           </button>
           
-          {/* Navigation Links - Hidden on Mobile */}
+          {/* Navigation Links */}
           <div className="hidden md:flex items-center gap-12 absolute left-1/2 transform -translate-x-1/2">
             {navItems.map((item, index) => (
               <button
@@ -121,26 +121,26 @@ const Header = ({
           </div>
 
           {/* Action Buttons */}
-          <div className="flex items-center gap-2 sm:gap-3 md:gap-4">
+          <div className="flex items-center gap-4">
             {/* Search Button */}
             <button
               onClick={toggleSearch}
-              className="group relative w-10 h-10 md:w-11 md:h-11 border border-zinc-800 hover:border-blue-500 flex items-center justify-center transition-all duration-500 hover:rotate-90"
+              className="group relative w-11 h-11 border border-zinc-800 hover:border-blue-500 flex items-center justify-center transition-all duration-500 hover:rotate-90"
             >
-              <Search className="w-4 h-4 md:w-5 md:h-5 text-zinc-500 group-hover:text-blue-400 transition-all duration-500 group-hover:-rotate-90" />
+              <Search className="w-5 h-5 text-zinc-500 group-hover:text-blue-400 transition-all duration-500 group-hover:-rotate-90" />
               <div className="absolute inset-0 bg-blue-500/0 group-hover:bg-blue-500/5 transition-all duration-500"></div>
             </button>
 
             {/* Cart Button */}
             <button
               onClick={toggleCart}
-              className="group relative w-10 h-10 md:w-11 md:h-11 border border-zinc-800 hover:border-blue-500 flex items-center justify-center transition-all duration-500 hover:rotate-90"
+              className="group relative w-11 h-11 border border-zinc-800 hover:border-blue-500 flex items-center justify-center transition-all duration-500 hover:rotate-90"
             >
-              <ShoppingBag className="w-4 h-4 md:w-5 md:h-5 text-zinc-500 group-hover:text-blue-400 transition-all duration-500 group-hover:-rotate-90" />
+              <ShoppingBag className="w-5 h-5 text-zinc-500 group-hover:text-blue-400 transition-all duration-500 group-hover:-rotate-90" />
               
               {/* Cart Count Badge */}
               {cartCount > 0 && (
-                <div className="absolute -top-1.5 -right-1.5 md:-top-2 md:-right-2 w-5 h-5 bg-blue-500 border-2 border-zinc-900 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                <div className="absolute -top-2 -right-2 w-5 h-5 bg-blue-500 border-2 border-zinc-900 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
                   <span className="text-white text-xs font-bold">{cartCount}</span>
                 </div>
               )}
@@ -148,7 +148,7 @@ const Header = ({
               <div className="absolute inset-0 bg-blue-500/0 group-hover:bg-blue-500/5 transition-all duration-500"></div>
             </button>
 
-            {/* Decorative Line - Hidden on Mobile */}
+            {/* Decorative Line */}
             <div className={`hidden lg:block w-[1px] h-8 bg-zinc-800 ml-2 transition-all duration-700 ${
               isScrolled ? 'opacity-100' : 'opacity-50'
             }`}></div>

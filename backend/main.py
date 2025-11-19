@@ -73,26 +73,19 @@ app = FastAPI(
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 # CORS - Railway compatible
-if settings.ENVIRONMENT == "production":
-    origins = [
-        "https://a-2z.vercel.app",
-        "https://a2z-production.up.railway.app",
-    ]
-else:
-    origins = [
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
         "http://localhost:3000",
         "http://localhost:5173",
         "http://127.0.0.1:3000",
-        "http://127.0.0.1:5173",
-    ]
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,
+        "https://*.railway.app",  # Railway domains
+        "https://*.up.railway.app",
+        "https://*.vercel.app"
+    ],
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
-    expose_headers=["*"],
     max_age=3600,
 )
 
@@ -1056,23 +1049,6 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
 @app.get("/")
 async def root():
     return {"message": "Auto Parts API", "version": "1.0.0", "docs": "/api/docs"}
-
-@app.get("/api")
-async def api_root():
-    return {
-        "message": "Auto Parts API", 
-        "version": "1.0.0", 
-        "status": "online",
-        "endpoints": {
-            "health": "/api/health",
-            "brands": "/api/brands",
-            "products": "/api/products",
-            "categories": "/api/categories",
-            "models": "/api/models",
-            "orders": "/api/orders",
-            "docs": "/api/docs"
-        }
-    }
 
 if __name__ == "__main__":
     import uvicorn
