@@ -1,11 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useParams, useNavigate, useLocation, Routes, Route } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
 import { MessageCircle } from 'lucide-react';
-import { pageVariants, pageTransition } from './constants/animations';
 import useApi from './hooks/useApi';
 import useCart from './hooks/useCart';
-import useLazyLoad from './hooks/useLazyLoad'; // إضافة الـ hook
+import useLazyLoad from './hooks/useLazyLoad'; 
 import Header from './components/common/Header';
 import Footer from './components/common/Footer';
 import CartModal from './components/common/CartModal';
@@ -21,82 +19,88 @@ import AboutSection from './components/sections/AboutSection';
 import ContactSection from './components/sections/ContactSection';
 import AdminPanel from './components/AdminPanel';
 
-// Cache utility
+// Detect mobile device
+const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+// Enhanced Cache utility
 const cache = {
-  data: {},
-  timestamps: {},
+  data: new Map(),
+  timestamps: new Map(),
+  maxSize: isMobile ? 20 : 40,
   
-  set(key, value, ttl = 300000) { // 5 minutes default
-    this.data[key] = value;
-    this.timestamps[key] = Date.now() + ttl;
+  set(key, value, ttl = 600000) {
+    if (this.data.size >= this.maxSize) {
+      const first = this.timestamps.keys().next().value;
+      this.delete(first);
+    }
+    this.data.set(key, value);
+    this.timestamps.set(key, Date.now() + ttl);
   },
   
   get(key) {
-    if (this.timestamps[key] && Date.now() < this.timestamps[key]) {
-      return this.data[key];
-    }
+    const exp = this.timestamps.get(key);
+    if (exp && Date.now() < exp) return this.data.get(key);
     this.delete(key);
     return null;
   },
   
   delete(key) {
-    delete this.data[key];
-    delete this.timestamps[key];
-  },
-  
-  clear() {
-    this.data = {};
-    this.timestamps = {};
+    this.data.delete(key);
+    this.timestamps.delete(key);
   }
 };
 
-// Lazy Loaded HomeView component
-const LazyHomeView = ({ brands, products, brandsRef, onBrandClick, onScrollToBrands }) => {
-  const [heroRef, heroVisible] = useLazyLoad({ threshold: 0.1 });
-  const [brandsRefLazy, brandsVisible] = useLazyLoad({ threshold: 0.1 });
+// Optimized Lazy components مع placeholders
+const LazyHomeView = React.memo(({ brands, products, brandsRef, onBrandClick, onScrollToBrands }) => {
+  const [heroRef, heroVisible] = useLazyLoad({ threshold: 0, rootMargin: '100px' });
+  const [brandsRefLazy, brandsVisible] = useLazyLoad({ threshold: 0, rootMargin: '150px' });
 
   return (
     <>
       <div ref={heroRef}>
-        {heroVisible && (
+        {heroVisible ? (
           <HeroSection onScrollToBrands={onScrollToBrands} brandsCount={brands.length} />
+        ) : (
+          <div className="h-screen bg-gradient-to-br from-blue-600 to-blue-800" />
         )}
       </div>
       
       <div ref={brandsRefLazy}>
-        {brandsVisible && (
+        {brandsVisible ? (
           <BrandsSection 
             brands={brands} 
             brandsRef={brandsRef} 
             onBrandClick={onBrandClick} 
             productsCount={products.length} 
           />
+        ) : (
+          <div className="h-[50vh] bg-white" />
         )}
       </div>
     </>
   );
-};
+});
 
-// Lazy Loaded ModelsView component
-const LazyModelsView = ({ selectedBrand, models, loading, onModelClick }) => {
-  const [modelsRef, modelsVisible] = useLazyLoad({ threshold: 0.1 });
+const LazyModelsView = React.memo(({ selectedBrand, models, loading, onModelClick }) => {
+  const [ref, visible] = useLazyLoad({ threshold: 0, rootMargin: '100px' });
 
   return (
-    <div ref={modelsRef}>
-      {modelsVisible && (
+    <div ref={ref}>
+      {visible ? (
         <ModelsView
           selectedBrand={selectedBrand}
           models={models}
           loading={loading}
           onModelClick={onModelClick}
         />
+      ) : (
+        <div className="h-screen bg-gray-50" />
       )}
     </div>
   );
-};
+});
 
-// Lazy Loaded PartsView component
-const LazyPartsView = ({ 
+const LazyPartsView = React.memo(({ 
   selectedBrand, 
   selectedModel, 
   products, 
@@ -106,11 +110,11 @@ const LazyPartsView = ({
   onAddToCart, 
   onViewDetails 
 }) => {
-  const [partsRef, partsVisible] = useLazyLoad({ threshold: 0.05 });
+  const [ref, visible] = useLazyLoad({ threshold: 0, rootMargin: '100px' });
 
   return (
-    <div ref={partsRef}>
-      {partsVisible && (
+    <div ref={ref}>
+      {visible ? (
         <PartsView
           selectedBrand={selectedBrand}
           selectedModel={selectedModel}
@@ -121,18 +125,19 @@ const LazyPartsView = ({
           onAddToCart={onAddToCart}
           onViewDetails={onViewDetails}
         />
+      ) : (
+        <div className="h-screen bg-gray-50" />
       )}
     </div>
   );
-};
+});
 
-// Lazy Loaded ProductDetailsView component
-const LazyProductDetailsView = ({ product, loading, onAddToCart, onOpenCart, onBack }) => {
-  const [productRef, productVisible] = useLazyLoad({ threshold: 0.1 });
+const LazyProductDetailsView = React.memo(({ product, loading, onAddToCart, onOpenCart, onBack }) => {
+  const [ref, visible] = useLazyLoad({ threshold: 0, rootMargin: '100px' });
 
   return (
-    <div ref={productRef}>
-      {productVisible && (
+    <div ref={ref}>
+      {visible ? (
         <ProductDetailsView 
           product={product}
           loading={loading}
@@ -140,46 +145,52 @@ const LazyProductDetailsView = ({ product, loading, onAddToCart, onOpenCart, onB
           onOpenCart={onOpenCart}
           onBack={onBack}
         />
+      ) : (
+        <div className="h-screen bg-gray-50" />
       )}
     </div>
   );
-};
+});
 
-// Lazy Loaded AboutSection component
-const LazyAboutSection = ({ aboutRef }) => {
-  const [aboutLazyRef, aboutVisible] = useLazyLoad({ threshold: 0.1 });
+const LazyAboutSection = React.memo(({ aboutRef }) => {
+  const [ref, visible] = useLazyLoad({ threshold: 0, rootMargin: '200px' });
 
   return (
-    <div ref={aboutLazyRef}>
-      {aboutVisible && (
+    <div ref={ref}>
+      {visible ? (
         <AboutSection aboutRef={aboutRef} />
+      ) : (
+        <div className="h-[40vh]" />
       )}
     </div>
   );
-};
+});
 
-// Lazy Loaded ContactSection component
-const LazyContactSection = ({ contactRef }) => {
-  const [contactLazyRef, contactVisible] = useLazyLoad({ threshold: 0.1 });
+const LazyContactSection = React.memo(({ contactRef }) => {
+  const [ref, visible] = useLazyLoad({ threshold: 0, rootMargin: '200px' });
 
   return (
-    <div ref={contactLazyRef}>
-      {contactVisible && (
+    <div ref={ref}>
+      {visible ? (
         <ContactSection contactRef={contactRef} />
+      ) : (
+        <div className="h-[40vh]" />
       )}
     </div>
   );
-};
+});
 
 const MainApp = () => {
   const { brandId, modelId, productId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
 
-  const currentView = productId ? 'productDetails' 
+  const currentView = useMemo(() => 
+    productId ? 'productDetails' 
     : brandId && modelId ? 'parts' 
     : brandId ? 'models' 
-    : 'home';
+    : 'home'
+  , [productId, brandId, modelId]);
     
   const [selectedBrand, setSelectedBrand] = useState(null);
   const [selectedModel, setSelectedModel] = useState(null);
@@ -187,301 +198,257 @@ const MainApp = () => {
   const [showCheckout, setShowCheckout] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState(false);
   const [customerInfo, setCustomerInfo] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    address: ''
+    name: '', email: '', phone: '', address: ''
   });
   const [brands, setBrands] = useState([]);
   const [models, setModels] = useState([]);
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
-  const aboutRef = useRef(null);
-  const contactRef = useRef(null);
+  const [modelsLoading, setModelsLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
-  const [isSearching, setIsSearching] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
+  const [isTransitioning, setIsTransitioning] = useState(false);
 
+  const aboutRef = useRef(null);
+  const contactRef = useRef(null);
   const brandsRef = useRef(null);
+  const searchTimeoutRef = useRef(null);
+  const isFetchingRef = useRef(false);
+  
   const { fetchData } = useApi();
   const cart = useCart();
 
-  // Cached fetch function
-  const fetchWithCache = useCallback(async (url, cacheKey, ttl = 300000) => {
+  // Optimized fetch with queue
+  const fetchWithCache = useCallback(async (url, cacheKey, ttl = 600000) => {
     const cached = cache.get(cacheKey);
-    if (cached) {
-      console.log(`[CACHE HIT] ${cacheKey}`);
-      return cached;
+    if (cached) return cached;
+    
+    // Prevent duplicate requests
+    while (isFetchingRef.current) {
+      await new Promise(resolve => setTimeout(resolve, 50));
     }
     
-    console.log(`[CACHE MISS] ${cacheKey}`);
-    const data = await fetchData(url);
-    cache.set(cacheKey, data, ttl);
-    return data;
+    isFetchingRef.current = true;
+    try {
+      const data = await fetchData(url);
+      if (data) cache.set(cacheKey, data, ttl);
+      return data;
+    } catch (error) {
+      console.error(`Fetch error ${cacheKey}:`, error);
+      return null;
+    } finally {
+      isFetchingRef.current = false;
+    }
   }, [fetchData]);
 
-  // Fetch brands with cache
+  // Fetch functions
   const fetchBrands = useCallback(async () => {
-    try {
-      const data = await fetchWithCache('/brands', 'brands', 600000); // 10 minutes
-      setBrands(data);
-    } catch (error) {
-      console.error('Error fetching brands:', error);
-    }
+    const data = await fetchWithCache('/brands', 'brands', 3600000);
+    if (data) setBrands(data);
   }, [fetchWithCache]);
 
-  // Fetch categories with cache
   const fetchCategories = useCallback(async () => {
-    try {
-      const data = await fetchWithCache('/categories', 'categories', 600000); // 10 minutes
-      setCategories(data);
-    } catch (error) {
-      console.error('Error fetching categories:', error);
-    }
+    const data = await fetchWithCache('/categories', 'categories', 3600000);
+    if (data) setCategories(data);
   }, [fetchWithCache]);
 
-  // Fetch models for brand with cache
   const fetchModelsForBrand = useCallback(async (brandId) => {
-    setLoading(true);
-    try {
-      const cacheKey = `models_${brandId}`;
-      const data = await fetchWithCache(`/brands/${brandId}/models`, cacheKey, 300000); // 5 minutes
-      setModels(Array.isArray(data) ? data : []);
-    } catch (error) {
-      console.error('Error fetching models:', error);
-      setModels([]);
-    } finally {
-      setLoading(false);
-    }
+    setModelsLoading(true);
+    const data = await fetchWithCache(`/brands/${brandId}/models`, `models_${brandId}`, 1800000);
+    setModels(Array.isArray(data) ? data : []);
+    setModelsLoading(false);
   }, [fetchWithCache]);
 
-  // Fetch products with cache
   const fetchProducts = useCallback(async () => {
+    if (!selectedBrand || !selectedModel) return;
+    
     setLoading(true);
-    try {
-      let url = '/products';
-      const params = [];
-      
-      if (selectedBrand) {
-        params.push(`brand_id=${selectedBrand.id}`);
-      }
-      
-      if (selectedModel && selectedModel.id !== 'all') {
-        params.push(`model_id=${selectedModel.id}`);
-      }
-      
-      if (params.length > 0) {
-        url += `?${params.join('&')}`;
-      }
-      
-      const cacheKey = `products_${params.join('_')}`;
-      const data = await fetchWithCache(url, cacheKey, 180000); // 3 minutes
-      setProducts(data);
-    } catch (error) {
-      console.error('Error fetching products:', error);
-      setProducts([]);
-    } finally {
-      setLoading(false);
-    }
+    let url = '/products';
+    const params = [];
+    
+    if (selectedBrand) params.push(`brand_id=${selectedBrand.id}`);
+    if (selectedModel?.id !== 'all') params.push(`model_id=${selectedModel.id}`);
+    
+    if (params.length) url += `?${params.join('&')}`;
+    
+    const data = await fetchWithCache(url, `products_${params.join('_')}`, 300000);
+    if (data) setProducts(data);
+    setLoading(false);
   }, [selectedBrand, selectedModel, fetchWithCache]);
 
-  // Fetch product details with cache
   const fetchProductDetails = useCallback(async (id) => {
     setLoading(true);
-    try {
-      const cacheKey = `product_${id}`;
-      const data = await fetchWithCache(`/products/${id}`, cacheKey, 300000); // 5 minutes
-      setSelectedProduct(data);
-    } catch (error) {
-      console.error('Error fetching product details:', error);
-    } finally {
-      setLoading(false);
-    }
+    const data = await fetchWithCache(`/products/${id}`, `product_${id}`, 900000);
+    if (data) setSelectedProduct(data);
+    setLoading(false);
   }, [fetchWithCache]);
 
+  // Initial fetch
   useEffect(() => {
     fetchBrands();
     fetchCategories();
-  }, [fetchBrands, fetchCategories]);
+  }, []);
 
   useEffect(() => {
-    if (selectedBrand) {
+    // Only fetch products when in parts view (when both brand and model are selected)
+    if (selectedBrand && selectedModel && currentView === 'parts') {
       fetchProducts();
     }
-  }, [selectedBrand, selectedModel, fetchProducts]);
+  }, [selectedBrand, selectedModel, currentView]);
 
+  // URL sync
   useEffect(() => {
-    if (brandId && brands.length > 0) {
+    if (brandId && brands.length) {
       const brand = brands.find(b => b.id === parseInt(brandId));
-      if (brand) {
+      if (brand && selectedBrand?.id !== brand.id) {
         setSelectedBrand(brand);
         fetchModelsForBrand(brandId);
       }
-    } else if (!brandId) {
+    } else if (!brandId && selectedBrand) {
       setSelectedBrand(null);
       setSelectedModel(null);
     }
-  }, [brandId, brands, fetchModelsForBrand]);
+  }, [brandId, brands]);
   
   useEffect(() => {
-    if (modelId && models.length > 0 && selectedBrand) {
+    if (modelId && models.length) {
       const model = models.find(m => m.id === parseInt(modelId));
-      if (model) {
+      if (model && selectedModel?.id !== model.id) {
         setSelectedModel(model);
       }
-    } else if (!modelId) {
+    } else if (!modelId && selectedModel) {
       setSelectedModel(null);
     }
-  }, [modelId, models, selectedBrand]);
+  }, [modelId, models]);
 
   useEffect(() => {
-    if (productId && selectedProduct) {
-      if (selectedProduct.brand_id && brands.length > 0) {
-        const brand = brands.find(b => b.id === selectedProduct.brand_id);
-        if (brand && (!selectedBrand || selectedBrand.id !== brand.id)) {
-          setSelectedBrand(brand);
-          fetchModelsForBrand(selectedProduct.brand_id);
-        }
-      }
-      
-      if (selectedProduct.model_id && models.length > 0) {
-        const model = models.find(m => m.id === selectedProduct.model_id);
-        if (model && (!selectedModel || selectedModel.id !== model.id)) {
-          setSelectedModel(model);
-        }
-      }
-    }
-  }, [selectedProduct, brands, models, selectedBrand, selectedModel, fetchModelsForBrand]);
+    if (productId) fetchProductDetails(productId);
+  }, [productId]);
 
-  useEffect(() => {
-    if (productId) {
-      fetchProductDetails(productId);
-    }
-  }, [productId, fetchProductDetails]);
-
-  const searchTimeoutRef = useRef(null);
-
+  // Search
   const handleSearch = useCallback(async (query) => {
     setSearchQuery(query);
     
     if (!query.trim()) {
       setSearchResults([]);
-      setIsSearching(false);
       return;
     }
     
-    setIsSearching(true);
-    
-    if (searchTimeoutRef.current) {
-      clearTimeout(searchTimeoutRef.current);
-    }
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
     
     searchTimeoutRef.current = setTimeout(async () => {
-      setLoading(true);
-      try {
-        const cacheKey = `search_${query}`;
-        const data = await fetchWithCache(`/products?search=${encodeURIComponent(query)}`, cacheKey, 120000); // 2 minutes
-        setSearchResults(data);
-      } catch (error) {
-        console.error('Error searching products:', error);
-        setSearchResults([]);
-      } finally {
-        setLoading(false);
-      }
-    }, 300);
+      const data = await fetchWithCache(
+        `/products?search=${encodeURIComponent(query)}`, 
+        `search_${query.toLowerCase()}`, 
+        300000
+      );
+      if (data) setSearchResults(data);
+    }, 400);
   }, [fetchWithCache]);
-
-  const handleProductClick = useCallback((product) => {
-    if (product.brand_id && product.model_id) {
-      const brand = brands.find(b => b.id === product.brand_id);
-      if (brand) {
-        setSelectedBrand(brand);
-        fetchModelsForBrand(product.brand_id);
-        
-        setTimeout(() => {
-          setSelectedModel({ id: product.model_id, name: product.model_name });
-          navigate(`/brand/${product.brand_id}/model/${product.model_id}`);
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-        }, 100);
-      }
-    } else if (product.brand_id) {
-      const brand = brands.find(b => b.id === product.brand_id);
-      if (brand) {
-        setSelectedBrand(brand);
-        navigate(`/brand/${product.brand_id}`);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      }
-    }
-  }, [brands, navigate, fetchModelsForBrand]);
 
   const clearSearch = useCallback(() => {
     setSearchQuery('');
     setSearchResults([]);
-    setIsSearching(false);
   }, []);
 
-  const handleViewDetails = useCallback((product) => {
-    if (product.brand_id && product.model_id) {
-      navigate(`/brand/${product.brand_id}/model/${product.model_id}/product/${product.id}`);
-    } else if (product.brand_id) {
-      navigate(`/brand/${product.brand_id}/product/${product.id}`);
-    } else {
-      navigate(`/product/${product.id}`);
-    }
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [navigate]);
-
-  const scrollToAbout = useCallback(() => {
-    aboutRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, []);
-
-  const scrollToContact = useCallback(() => {
-    contactRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, []);
-
-  const scrollToBrands = useCallback(() => {
-    if (currentView !== 'home') {
-      navigate('/');
-      setSelectedBrand(null);
-      setSelectedModel(null);
+  // SUPER SMOOTH NAVIGATION - الحل النهائي
+  const smoothNavigate = useCallback((path, setup) => {
+    // 1. Setup state فوراً
+    if (setup) setup();
+    
+    // 2. Add transition class
+    setIsTransitioning(true);
+    
+    // 3. Navigate immediately
+    navigate(path);
+    
+    // 4. Scroll to top using RAF for smoothness
+    requestAnimationFrame(() => {
+      window.scrollTo({ top: 0, behavior: 'instant' });
       
-      setTimeout(() => {
-        brandsRef.current?.scrollIntoView({ behavior: 'smooth' });
-      }, 100);
-    } else {
-      brandsRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [currentView, navigate]);
+      // 5. Remove transition after a frame
+      requestAnimationFrame(() => {
+        setIsTransitioning(false);
+      });
+    });
+  }, [navigate]);
 
   const handleBrandClick = useCallback((brand) => {
-    setSelectedBrand(brand);
-    setSelectedModel(null);
-    navigate(`/brand/${brand.id}`);
-    fetchModelsForBrand(brand.id);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [navigate, fetchModelsForBrand]);
+    smoothNavigate(`/brand/${brand.id}`, () => {
+      setSelectedBrand(brand);
+      setSelectedModel(null);
+      fetchModelsForBrand(brand.id);
+    });
+  }, [smoothNavigate, fetchModelsForBrand]);
 
   const handleModelClick = useCallback((model) => {
-    setSelectedModel(model);
-    navigate(`/brand/${selectedBrand.id}/model/${model.id}`);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [navigate, selectedBrand]);
+    smoothNavigate(`/brand/${selectedBrand.id}/model/${model.id}`, () => {
+      setSelectedModel(model);
+    });
+  }, [smoothNavigate, selectedBrand]);
 
   const handleBackToHome = useCallback(() => {
-    navigate('/');
-    setSelectedBrand(null);
-    setSelectedModel(null);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [navigate]);
+    smoothNavigate('/', () => {
+      setSelectedBrand(null);
+      setSelectedModel(null);
+    });
+  }, [smoothNavigate]);
 
   const handleBackToModels = useCallback(() => {
-    navigate(`/brand/${selectedBrand.id}`);
-    setSelectedModel(null);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [navigate, selectedBrand]);
+    smoothNavigate(`/brand/${selectedBrand.id}`, () => {
+      setSelectedModel(null);
+    });
+  }, [smoothNavigate, selectedBrand]);
 
+  const handleViewDetails = useCallback((product) => {
+    const path = product.brand_id && product.model_id 
+      ? `/brand/${product.brand_id}/model/${product.model_id}/product/${product.id}`
+      : product.brand_id 
+      ? `/brand/${product.brand_id}/product/${product.id}`
+      : `/product/${product.id}`;
+    smoothNavigate(path);
+  }, [smoothNavigate]);
+
+  const handleProductClick = useCallback((product) => {
+    if (product.brand_id) {
+      const brand = brands.find(b => b.id === product.brand_id);
+      if (brand) {
+        if (product.model_id) {
+          setSelectedBrand(brand);
+          fetchModelsForBrand(product.brand_id);
+          setTimeout(() => {
+            setSelectedModel({ id: product.model_id, name: product.model_name });
+            smoothNavigate(`/brand/${product.brand_id}/model/${product.model_id}`);
+          }, 100);
+        } else {
+          smoothNavigate(`/brand/${product.brand_id}`, () => {
+            setSelectedBrand(brand);
+          });
+        }
+      }
+    }
+  }, [brands, smoothNavigate, fetchModelsForBrand]);
+
+  // Scroll handlers
+  const smoothScroll = useCallback((ref) => {
+    ref?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, []);
+
+  const scrollToAbout = useCallback(() => smoothScroll(aboutRef), []);
+  const scrollToContact = useCallback(() => smoothScroll(contactRef), []);
+  
+  const scrollToBrands = useCallback(() => {
+    if (currentView !== 'home') {
+      handleBackToHome();
+      setTimeout(() => smoothScroll(brandsRef), 300);
+    } else {
+      smoothScroll(brandsRef);
+    }
+  }, [currentView, handleBackToHome]);
+
+  // Checkout
   const handleProceedToCheckout = useCallback(() => {
     setShowCart(false);
     setShowCheckout(true);
@@ -489,25 +456,21 @@ const MainApp = () => {
 
   const handleCheckoutComplete = useCallback(async () => {
     try {
-      const orderData = {
-        customer_name: customerInfo.name,
-        customer_email: customerInfo.email,
-        customer_phone: customerInfo.phone,
-        customer_address: customerInfo.address,
-        items: cart.cart.map(item => ({
-          product_id: item.id,
-          quantity: item.quantity,
-          price: item.price
-        })),
-        total_amount: cart.getTotalPrice()
-      };
-
-      console.log('[DEBUG] Sending order data:', orderData);
-
-      const result = await fetchData('/orders', {
+      await fetchData('/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(orderData)
+        body: JSON.stringify({
+          customer_name: customerInfo.name,
+          customer_email: customerInfo.email,
+          customer_phone: customerInfo.phone,
+          customer_address: customerInfo.address,
+          items: cart.cart.map(item => ({
+            product_id: item.id,
+            quantity: item.quantity,
+            price: item.price
+          })),
+          total_amount: cart.getTotalPrice()
+        })
       });
 
       setShowCheckout(false);
@@ -515,34 +478,42 @@ const MainApp = () => {
       cart.setCart([]);
       setCustomerInfo({ name: '', email: '', phone: '', address: '' });
       
-      setTimeout(() => {
-        setOrderSuccess(false);
-      }, 5000);
-      
-      return result;
+      setTimeout(() => setOrderSuccess(false), 5000);
     } catch (error) {
-      console.error('Error creating order:', error);
+      console.error('Order error:', error);
       throw error;
     }
   }, [customerInfo, cart, fetchData]);
 
   const handleWhatsAppClick = useCallback(() => {
-    const phoneNumber = '201119890713';
-    const message = 'مرحباً، أريد الاستفسار عن المنتجات';
-    const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
-    window.open(whatsappUrl, '_blank');
+    window.open(
+      `https://wa.me/201119890713?text=${encodeURIComponent('مرحباً، أريد الاستفسار عن المنتجات')}`,
+      '_blank'
+    );
   }, []);
 
-  // Memoize products by category
   const productsByCategory = useMemo(() => {
-    return categories.reduce((acc, category) => {
-      acc[category.name] = products.filter(p => p.category_id === category.id);
+    return categories.reduce((acc, cat) => {
+      acc[cat.name] = products.filter(p => p.category_id === cat.id);
       return acc;
     }, {});
   }, [categories, products]);
 
+  // Cleanup
+  useEffect(() => {
+    return () => {
+      if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+    };
+  }, []);
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-gray-50">
+    <div className="min-h-screen relative bg-gradient-to-br from-gray-50 via-blue-50 to-gray-50">
+      {/* Smooth transition overlay */}
+      {isTransitioning && (
+        <div className="fixed inset-0 bg-white/30 z-[60] pointer-events-none transition-opacity duration-150" 
+             style={{ opacity: isTransitioning ? 1 : 0 }} />
+      )}
+      
       {orderSuccess && <SuccessNotification onClose={() => setOrderSuccess(false)} />}
       
       <Header
@@ -561,97 +532,84 @@ const MainApp = () => {
         onViewDetails={handleViewDetails}
       />
 
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={location.pathname + currentView}
-          initial="initial"
-          animate="in"
-          exit="out"
-          variants={pageVariants}
-          transition={pageTransition}
-          className="min-h-screen"
-        >
-          {currentView !== 'home' && (
-            <BackButton 
-              onClick={currentView === 'productDetails' ? () => navigate(-1) : 
-                       currentView === 'parts' ? handleBackToModels : 
-                       handleBackToHome} 
-              currentView={currentView}
-              selectedBrand={selectedBrand}
-              selectedModel={selectedModel}
-            />
-          )}
+      {/* Content wrapper مع fade transition سلسة */}
+      <div 
+        key={location.pathname} 
+        className="min-h-screen transition-opacity duration-200"
+        style={{ opacity: isTransitioning ? 0.7 : 1 }}
+      >
+        {currentView !== 'home' && (
+          <BackButton 
+            onClick={
+              currentView === 'productDetails' ? () => navigate(-1) : 
+              currentView === 'parts' ? handleBackToModels : 
+              handleBackToHome
+            } 
+            currentView={currentView}
+            selectedBrand={selectedBrand}
+            selectedModel={selectedModel}
+          />
+        )}
 
-          {currentView === 'home' && (
-            <LazyHomeView 
-              brands={brands}
-              products={products}
-              brandsRef={brandsRef}
-              onBrandClick={handleBrandClick}
-              onScrollToBrands={scrollToBrands}
-            />
-          )}
+        {currentView === 'home' && (
+          <LazyHomeView 
+            brands={brands}
+            products={products}
+            brandsRef={brandsRef}
+            onBrandClick={handleBrandClick}
+            onScrollToBrands={scrollToBrands}
+          />
+        )}
 
-          {currentView === 'models' && selectedBrand && (
-            <LazyModelsView
-              selectedBrand={selectedBrand}
-              models={models}
-              loading={loading}
-              onModelClick={handleModelClick}
-            />
-          )}
+        {currentView === 'models' && selectedBrand && (
+          <LazyModelsView
+            selectedBrand={selectedBrand}
+            models={models}
+            loading={modelsLoading}
+            onModelClick={handleModelClick}
+          />
+        )}
 
-          {currentView === 'productDetails' && selectedProduct && (
-            <LazyProductDetailsView 
-              product={selectedProduct}
-              loading={loading}
-              onAddToCart={cart.addToCart}
-              onOpenCart={() => setShowCart(true)}
-              onBack={() => navigate(-1)}
-            />
-          )}
+        {currentView === 'productDetails' && selectedProduct && (
+          <LazyProductDetailsView 
+            product={selectedProduct}
+            loading={loading}
+            onAddToCart={cart.addToCart}
+            onOpenCart={() => setShowCart(true)}
+            onBack={() => navigate(-1)}
+          />
+        )}
 
-          {currentView === 'parts' && selectedBrand && selectedModel && (
-            <LazyPartsView
-              selectedBrand={selectedBrand}
-              selectedModel={selectedModel}
-              products={products}
-              categories={categories}
-              productsByCategory={productsByCategory}
-              loading={loading}
-              onAddToCart={cart.addToCart}
-              onViewDetails={handleViewDetails}
-            />
-          )}
+        {currentView === 'parts' && selectedBrand && selectedModel && (
+          <LazyPartsView
+            selectedBrand={selectedBrand}
+            selectedModel={selectedModel}
+            products={products}
+            categories={categories}
+            productsByCategory={productsByCategory}
+            loading={loading}
+            onAddToCart={cart.addToCart}
+            onViewDetails={handleViewDetails}
+          />
+        )}
 
-          {currentView === 'home' && (
-            <>
-              <LazyAboutSection aboutRef={aboutRef} />
-              <LazyContactSection contactRef={contactRef} />
-            </>
-          )}
-        </motion.div>
-      </AnimatePresence>
+        {currentView === 'home' && (
+          <>
+            <LazyAboutSection aboutRef={aboutRef} />
+            <LazyContactSection contactRef={contactRef} />
+          </>
+        )}
+      </div>
 
       <Footer />
 
-      <motion.button
+      <button
         onClick={handleWhatsAppClick}
-        initial={{ scale: 0 }}
-        animate={{ scale: 1 }}
-        whileHover={{ scale: 1.1 }}
-        whileTap={{ scale: 0.9 }}
-        className="fixed bottom-6 left-6 z-50 bg-gradient-to-br from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white rounded-full p-4 shadow-2xl shadow-green-500/50 hover:shadow-green-600/60 transition-all duration-300 group"
-        aria-label="Contact us on WhatsApp"
+        className="fixed bottom-6 left-6 z-50 bg-gradient-to-br from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white rounded-full p-4 shadow-2xl transform hover:scale-110 active:scale-95 transition-transform duration-200"
+        aria-label="WhatsApp"
       >
         <MessageCircle className="w-7 h-7" />
-        
-        <span className="absolute inset-0 rounded-full bg-green-400 animate-ping opacity-20"></span>
-        
-        <span className="absolute left-full ml-3 top-1/2 -translate-y-1/2 bg-slate-900 text-white text-sm px-3 py-2 rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
-          تواصل معنا
-        </span>
-      </motion.button>
+      </button>
 
       {showCart && (
         <CartModal
@@ -678,18 +636,16 @@ const MainApp = () => {
   );
 };
 
-const App = () => {
-  return (
-    <Routes>
-      <Route path="/" element={<MainApp />} />
-      <Route path="/brand/:brandId" element={<MainApp />} />
-      <Route path="/brand/:brandId/model/:modelId" element={<MainApp />} />
-      <Route path="/brand/:brandId/model/:modelId/product/:productId" element={<MainApp />} />
-      <Route path="/brand/:brandId/product/:productId" element={<MainApp />} />
-      <Route path="/product/:productId" element={<MainApp />} />
-      <Route path="/admin" element={<AdminPanel />} />
-    </Routes>
-  );
-};
+const App = () => (
+  <Routes>
+    <Route path="/" element={<MainApp />} />
+    <Route path="/brand/:brandId" element={<MainApp />} />
+    <Route path="/brand/:brandId/model/:modelId" element={<MainApp />} />
+    <Route path="/brand/:brandId/model/:modelId/product/:productId" element={<MainApp />} />
+    <Route path="/brand/:brandId/product/:productId" element={<MainApp />} />
+    <Route path="/product/:productId" element={<MainApp />} />
+    <Route path="/admin" element={<AdminPanel />} />
+  </Routes>
+);
 
 export default App;

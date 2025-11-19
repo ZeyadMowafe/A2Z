@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Package, ShoppingCart, TrendingUp, Users, Edit, Trash2, Plus, X, Eye, Search, Filter, LogOut, Menu, Car ,AlertCircle} from 'lucide-react';
 
-const API_URL = '/api';
+const API_URL = "https://a2z-production.up.railway.app/api";
 
 const AdminPanel = () => {
   const [activeTab, setActiveTab] = useState('dashboard');

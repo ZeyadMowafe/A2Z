@@ -1,27 +1,55 @@
 import { useCallback } from 'react';
 
-const API_URL =
-  window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
-    ? "http://127.0.0.1:8000/api"
-    : "https://a2z-production.up.railway.app/api";
+// ✅ API URL Configuration
+const API_URL = 
+     ("https://a2z-production.up.railway.app/api");
+
+console.log('🔗 API URL:', API_URL);
+console.log('🌍 Frontend URL:', window.location.origin);
 
 const apiCache = {};
-const CACHE_DURATION = 5 * 60 * 1000; // 5 دقائق
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
+
+const testConnection = async () => {
+  try {
+    const response = await fetch(`${API_URL}/health`);
+    const data = await response.json();
+    console.log('✅ Backend Connected:', data);
+    return true;
+  } catch (error) {
+    console.error('❌ Backend Connection Failed:', error);
+    return false;
+  }
+};
 
 const useApi = () => {
   const fetchData = useCallback(async (endpoint, options = {}) => {
-    // ✅ لو الميثود POST أو PUT أو DELETE (مش GET)
+    const url = `${API_URL}${endpoint}`;
+    
+    // ✅ Default fetch options
+    const fetchOptions = {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    };
+
+    console.log(`🌐 ${options.method || 'GET'} ${url}`);
+
+    // POST/PUT/DELETE - No cache
     if (options.method && options.method !== 'GET') {
       try {
-        const response = await fetch(`${API_URL}${endpoint}`, options);
+        const response = await fetch(url, fetchOptions);
 
-        // ⚠️ هنا الإضافة الجديدة لعرض الخطأ الحقيقي
         if (!response.ok) {
           const errorText = await response.text();
+          console.error(`❌ [${response.status}]`, errorText);
           throw new Error(`HTTP ${response.status}: ${errorText}`);
         }
 
-        // 🧹 حذف الكاش لما يحصل تعديل في البيانات
+        // Clear related cache
         if (endpoint.includes('/brands')) {
           delete apiCache['/brands'];
         }
@@ -35,30 +63,33 @@ const useApi = () => {
             if (key.includes('/models')) delete apiCache[key];
           });
         }
+        if (endpoint.includes('/categories')) {
+          delete apiCache['/categories'];
+        }
 
         return await response.json();
       } catch (error) {
-        console.error(`❌ Error fetching ${endpoint}:`, error);
+        console.error(`❌ Error:`, error.message);
         throw error;
       }
     }
 
-    // ✅ GET requests مع الكاش
+    // GET requests - Use cache
     const now = Date.now();
     const cached = apiCache[endpoint];
 
     if (cached && (now - cached.timestamp < CACHE_DURATION)) {
-      console.log(`✅ [Cache Hit] ${endpoint}`);
+      console.log(`✅ [Cache] ${endpoint}`);
       return cached.data;
     }
 
-    console.log(`🔄 [Fetching] ${endpoint}`);
+    console.log(`🔄 [Fetch] ${endpoint}`);
     try {
-      const response = await fetch(`${API_URL}${endpoint}`, options);
+      const response = await fetch(url, fetchOptions);
 
-      // ⚠️ نفس الإضافة هنا برضو لطلبات GET
       if (!response.ok) {
         const errorText = await response.text();
+        console.error(`❌ [${response.status}]`, errorText);
         throw new Error(`HTTP ${response.status}: ${errorText}`);
       }
 
@@ -69,9 +100,10 @@ const useApi = () => {
         timestamp: now,
       };
 
+      console.log(`✅ [Success] ${endpoint}`);
       return data;
     } catch (error) {
-      console.error(`❌ Error fetching ${endpoint}:`, error);
+      console.error(`❌ Error:`, error.message);
       throw error;
     }
   }, []);

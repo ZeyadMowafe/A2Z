@@ -11,14 +11,14 @@ const BrandCard = ({ brand, onClick }) => (
       <img
         src={brand.logo_url}
         alt={brand.name}
-        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 opacity-80"
+        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 opacity-100 brightness-110 contrast-110"
       />
       
-      {/* Gradient Overlay */}
-      <div className={`absolute inset-0 bg-gradient-to-t ${brand.color} opacity-50 group-hover:opacity-60 transition-opacity duration-500`}></div>
+      {/* Gradient Overlay - أخف */}
+      <div className={`absolute inset-0 bg-gradient-to-t ${brand.color} opacity-30 group-hover:opacity-40 transition-opacity duration-500`}></div>
       
-      {/* Dark Overlay */}
-      <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/80 to-transparent"></div>
+      {/* Dark Overlay - أخف */}
+      <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-900/50 to-transparent"></div>
       
       <BrandCardContent brand={brand} />
       

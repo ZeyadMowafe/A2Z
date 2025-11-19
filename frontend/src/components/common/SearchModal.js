@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Search, X, ShoppingBag, TrendingUp } from 'lucide-react';
 
 const SearchModal = ({ 
@@ -13,18 +13,40 @@ const SearchModal = ({
   const [popularSearches, setPopularSearches] = useState([]);
   const [loading, setLoading] = useState(false);
   const [sortBy, setSortBy] = useState('relevance');
+  
+  // Use ref for debounce timeout
+  const searchTimeoutRef = useRef(null);
+  const suggestionsTimeoutRef = useRef(null);
 
   // Load popular searches عند فتح الـ modal
   useEffect(() => {
     if (isOpen) {
       loadPopularSearches();
+      // Reset state when modal opens
+      setSearchQuery('');
+      setSearchResults([]);
+      setSuggestions([]);
+      setSortBy('relevance');
     }
   }, [isOpen]);
+
+  // Cleanup timeouts on unmount
+  useEffect(() => {
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+      if (suggestionsTimeoutRef.current) {
+        clearTimeout(suggestionsTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Load popular searches from API
   const loadPopularSearches = async () => {
     try {
       const response = await fetch('/api/search/popular');
+      if (!response.ok) throw new Error('Failed to fetch');
       const data = await response.json();
       setPopularSearches(data);
     } catch (error) {
@@ -43,8 +65,9 @@ const SearchModal = ({
 
     try {
       const response = await fetch(`/api/search/suggestions?q=${encodeURIComponent(query)}`);
+      if (!response.ok) throw new Error('Failed to fetch');
       const data = await response.json();
-      setSuggestions(data);
+      setSuggestions(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Failed to get suggestions:', error);
       setSuggestions([]);
@@ -55,15 +78,22 @@ const SearchModal = ({
   const searchProducts = async (query, sort = sortBy) => {
     if (!query || query.trim() === '') {
       setSearchResults([]);
+      setLoading(false);
       return;
     }
 
     setLoading(true);
     try {
-      const url = `/api/products?search=${encodeURIComponent(query)}&sort_by=${sort}`;
+      const url = `/api/products?search=${encodeURIComponent(query)}&sort_by=${sort}&limit=50`;
+      console.log('Searching:', url); // Debug log
+      
       const response = await fetch(url);
+      if (!response.ok) throw new Error('Failed to fetch');
+      
       const data = await response.json();
-      setSearchResults(data);
+      console.log('Search results:', data); // Debug log
+      
+      setSearchResults(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Search failed:', error);
       setSearchResults([]);
@@ -72,26 +102,48 @@ const SearchModal = ({
     }
   };
 
-  // Handle input change
+  // Handle input change with proper debounce
   const handleInputChange = (value) => {
     setSearchQuery(value);
-    getSuggestions(value);
     
-    // Auto search after typing stops (debounce)
-    const timeoutId = setTimeout(() => {
-      if (value) {
-        searchProducts(value);
-      }
-    }, 500);
-
-    return () => clearTimeout(timeoutId);
+    // Clear previous timeouts
+    if (suggestionsTimeoutRef.current) {
+      clearTimeout(suggestionsTimeoutRef.current);
+    }
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+    
+    if (!value || value.trim() === '') {
+      setSuggestions([]);
+      setSearchResults([]);
+      return;
+    }
+    
+    // Get suggestions faster (300ms)
+    suggestionsTimeoutRef.current = setTimeout(() => {
+      getSuggestions(value);
+    }, 300);
+    
+    // Auto search after typing stops (800ms)
+    searchTimeoutRef.current = setTimeout(() => {
+      searchProducts(value);
+    }, 800);
   };
 
   // Handle search submit
   const handleSearch = () => {
-    if (searchQuery) {
-      searchProducts(searchQuery);
+    if (searchQuery && searchQuery.trim() !== '') {
+      // Clear timeouts
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+      if (suggestionsTimeoutRef.current) {
+        clearTimeout(suggestionsTimeoutRef.current);
+      }
+      
       setSuggestions([]); // Hide suggestions
+      searchProducts(searchQuery);
     }
   };
 
@@ -105,13 +157,14 @@ const SearchModal = ({
   // Handle popular search click
   const handlePopularClick = (term) => {
     setSearchQuery(term);
+    setSuggestions([]);
     searchProducts(term);
   };
 
   // Handle sort change
   const handleSortChange = (newSort) => {
     setSortBy(newSort);
-    if (searchQuery) {
+    if (searchQuery && searchQuery.trim() !== '') {
       searchProducts(searchQuery, newSort);
     }
   };
@@ -119,19 +172,29 @@ const SearchModal = ({
   // Handle view details
   const handleViewDetails = (product) => {
     onClose();
-    onViewDetails(product);
+    if (onViewDetails) {
+      onViewDetails(product);
+    }
   };
 
   // Handle add to cart
   const handleAddToCart = (product) => {
-    onAddToCart(product);
-    onClose();
+    if (onAddToCart) {
+      onAddToCart(product);
+    }
+    // Don't close modal immediately, show success feedback
+    setTimeout(() => {
+      onClose();
+    }, 500);
   };
 
   // Handle key press
   const handleKeyPress = (e) => {
     if (e.key === 'Enter') {
+      e.preventDefault();
       handleSearch();
+    } else if (e.key === 'Escape') {
+      onClose();
     }
   };
 
@@ -153,27 +216,30 @@ const SearchModal = ({
               type="text"
               value={searchQuery}
               onChange={(e) => handleInputChange(e.target.value)}
-              onKeyPress={handleKeyPress}
+              onKeyDown={handleKeyPress}
               placeholder="Search auto parts, brands, models..."
               className="w-full bg-transparent text-gray-900 text-xl sm:text-2xl md:text-3xl font-extralight px-4 sm:px-6 py-4 sm:py-6 pr-16 sm:pr-20 focus:outline-none placeholder-gray-400 tracking-wide"
               autoFocus
+              autoComplete="off"
             />
             <button
               onClick={handleSearch}
               className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 p-2 sm:p-3 bg-gray-900 hover:bg-black transition-all duration-500"
+              type="button"
             >
               <Search className="w-5 h-5 sm:w-6 sm:h-6 text-white" strokeWidth={1.5} />
             </button>
           </div>
 
           {/* Suggestions Dropdown */}
-          {suggestions.length > 0 && searchQuery && (
+          {suggestions.length > 0 && searchQuery && !loading && (
             <div className="bg-white shadow-xl mb-4 max-h-60 overflow-y-auto">
               {suggestions.map((suggestion, index) => (
                 <button
-                  key={index}
+                  key={`${suggestion.text}-${index}`}
                   onClick={() => handleSuggestionClick(suggestion.text)}
                   className="w-full px-4 sm:px-6 py-3 text-left hover:bg-gray-50 transition-colors duration-200 border-b border-gray-100 last:border-0"
+                  type="button"
                 >
                   <div className="flex items-center gap-3">
                     <Search className="w-4 h-4 text-gray-400" strokeWidth={1.5} />
@@ -186,7 +252,7 @@ const SearchModal = ({
           )}
 
           {/* Sort Options */}
-          {searchResults.length > 0 && (
+          {searchResults.length > 0 && !loading && (
             <div className="flex items-center gap-2 sm:gap-3 mb-6 flex-wrap">
               <span className="text-white text-xs sm:text-sm font-light tracking-wide uppercase">Sort By:</span>
               {[
@@ -203,6 +269,7 @@ const SearchModal = ({
                       ? 'bg-white text-gray-900 border-white'
                       : 'bg-white/5 text-white border-white/10 hover:bg-white/10 hover:border-white/20'
                   }`}
+                  type="button"
                 >
                   {option.label}
                 </button>
@@ -232,13 +299,18 @@ const SearchModal = ({
                   >
                     <div className="relative aspect-square overflow-hidden bg-gray-100">
                       <img
-                        src={product.image_url}
+                        src={product.image_url || '/placeholder.jpg'}
                         alt={product.name}
                         className="w-full h-full object-cover hover:scale-105 transition-transform duration-700"
+                        onError={(e) => {
+                          e.target.src = '/placeholder.jpg';
+                        }}
                       />
                     </div>
                     <div className="p-4 sm:p-5">
-                      <h4 className="text-base sm:text-lg font-light mb-2 sm:mb-3 text-gray-900 tracking-wide truncate">{product.name}</h4>
+                      <h4 className="text-base sm:text-lg font-light mb-2 sm:mb-3 text-gray-900 tracking-wide truncate">
+                        {product.name}
+                      </h4>
                       
                       <div className="flex flex-wrap gap-2 mb-3 sm:mb-4">
                         {product.brand_name && (
@@ -258,18 +330,22 @@ const SearchModal = ({
                         )}
                       </div>
                       
-                      <p className="text-xl sm:text-2xl font-light text-gray-900 mb-4 sm:mb-5">EGP {product.price}</p>
+                      <p className="text-xl sm:text-2xl font-light text-gray-900 mb-4 sm:mb-5">
+                        EGP {product.price?.toFixed(2) || '0.00'}
+                      </p>
                       
                       <div className="flex gap-2 sm:gap-3">
                         <button
                           onClick={() => handleViewDetails(product)}
                           className="flex-1 bg-gray-900 text-white py-2.5 sm:py-3 font-light tracking-[0.15em] uppercase hover:bg-black transition-all duration-500 text-xs sm:text-sm"
+                          type="button"
                         >
                           View Details
                         </button>
                         <button
                           onClick={() => handleAddToCart(product)}
                           className="px-3 sm:px-4 bg-gray-900 hover:bg-black text-white transition-all duration-500"
+                          type="button"
                         >
                           <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5" strokeWidth={1.5} />
                         </button>
@@ -279,26 +355,27 @@ const SearchModal = ({
                 ))}
               </div>
             </div>
-          ) : !loading && searchQuery ? (
+          ) : !loading && searchQuery && searchResults.length === 0 ? (
             <div className="text-center py-16 sm:py-24 text-white">
               <div className="bg-white/5 w-24 h-24 sm:w-32 sm:h-32 flex items-center justify-center mx-auto mb-6 sm:mb-8 border border-white/10">
                 <Search className="w-12 h-12 sm:w-16 sm:h-16" strokeWidth={1} />
               </div>
               <p className="text-xl sm:text-2xl font-extralight mb-3 sm:mb-4 tracking-[0.2em] uppercase">No Products Found</p>
-              <p className="text-gray-400 font-light tracking-wide text-sm sm:text-base">Try different keywords</p>
+              <p className="text-gray-400 font-light tracking-wide text-sm sm:text-base">Try different keywords or check your spelling</p>
             </div>
-          ) : !searchQuery ? (
+          ) : !searchQuery && !loading ? (
             <div className="mt-8 sm:mt-16 text-white/90">
               <div className="flex items-center gap-2 mb-5 sm:mb-6">
                 <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400" strokeWidth={1.5} />
                 <p className="text-xs sm:text-sm uppercase tracking-[0.25em] font-light text-gray-400">Popular Searches</p>
               </div>
               <div className="flex flex-wrap gap-2 sm:gap-3">
-                {popularSearches.map((term) => (
+                {popularSearches.map((term, index) => (
                   <button
-                    key={term}
+                    key={`${term}-${index}`}
                     onClick={() => handlePopularClick(term)}
                     className="px-4 sm:px-5 py-2 sm:py-2.5 bg-white/5 hover:bg-white/10 text-sm font-light tracking-wide transition-all duration-500 border border-white/10 hover:border-white/20"
+                    type="button"
                   >
                     {term}
                   </button>
@@ -311,6 +388,8 @@ const SearchModal = ({
           <button
             onClick={onClose}
             className="fixed top-4 sm:top-6 right-4 sm:right-8 p-2 sm:p-3 text-white hover:bg-white/10 transition-all duration-500 border border-white/20 z-10"
+            type="button"
+            aria-label="Close search"
           >
             <X className="w-6 h-6 sm:w-8 sm:h-8" strokeWidth={1.5} />
           </button>

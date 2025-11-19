@@ -2,7 +2,7 @@
   "name": "handmade-bags",
   "version": "0.1.0",
   "private": true,
-  "homepage": ".",
+  "homepage": "https://a-2z.vercel.app",
   "dependencies": {
     "@supabase/supabase-js": "^2.56.0",
     "antd": "^5.27.4",
